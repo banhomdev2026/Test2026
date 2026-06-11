@@ -168,35 +168,67 @@
                                String(today.getDate()).padStart(2, '0');
             document.getElementById('modalDate').value = dateString;
         }
+async function saveData(event) {
+    event.preventDefault();
 
-        async function saveData(event) {
-            event.preventDefault();
-            const btn = document.getElementById('saveBtn');
-            const originalText = btn.innerHTML;
-            const formData = new URLSearchParams();
-            formData.append('action', 'insert');
-            formData.append('barcode', document.getElementById('modalBarcode').value);
-            formData.append('date', document.getElementById('modalDate').value);
-            formData.append('status', document.getElementById('modalStatus').value);
-            formData.append('details', document.getElementById('modalDetails').value);
+    const btn = document.getElementById('saveBtn');
 
-            try {
-                btn.disabled = true;
-                btn.innerHTML = `ກຳລັງບັນທຶກ...`;
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    Swal.fire({ icon: 'success', title: 'ບັນທຶກສຳເລັດ!', timer: 2000, showConfirmButton: false });
-                    closeModal();
-                } else { throw new Error(); }
-            } catch (error) {
-                Swal.fire({ icon: 'error', title: 'ບັນທຶກບໍ່ສຳເລັດ', text: 'ກະລຸນາກວດສອບການເຊື່ອມຕໍ່ອິນເຕີເນັດ' });
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
+    const formData = new URLSearchParams();
+    formData.append('action', 'insert');
+    formData.append('barcode', document.getElementById('modalBarcode').value);
+    formData.append('date', document.getElementById('modalDate').value);
+    formData.append('status', document.getElementById('modalStatus').value);
+    formData.append('details', document.getElementById('modalDetails').value);
+
+    // ป้องกันกดซ้ำ
+    btn.disabled = true;
+
+    // ปิด Modal ทันที
+    closeModal();
+
+    // แจ้งสำเร็จก่อนทันที
+    Swal.fire({
+        icon: 'success',
+        title: 'ບັນທຶກສຳເລັດ!',
+        timer: 1200,
+        showConfirmButton: false
+    });
+
+    // บันทึกแบบเงียบๆ Background
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+
+        // ถ้าบันทึกจริงไม่สำเร็จ
+        if (result.status !== 'success') {
+
+            Swal.fire({
+                icon: 'error',
+                title: 'ບັນທຶກບໍ່ສຳເລັດ',
+                text: 'ຂໍ້ມູນບໍ່ໄດ້ຖືກບັນທຶກ'
+            });
+
         }
 
+    })
+    .catch(error => {
+
+        // ถ้า internet หรือ script error
+        Swal.fire({
+            icon: 'error',
+            title: 'ບັນທຶກບໍ່ສຳເລັດ',
+            text: 'ກະລຸນາກວດສອບອິນເຕີເນັດ'
+        });
+
+    })
+    .finally(() => {
+        btn.disabled = false;
+    });
+}
+        
         function showDataInfo() {
             Swal.fire({ title: 'ຂໍ້ມູນລະບົບ', icon: 'info', confirmButtonText: 'ປິດ' });
         }

@@ -37,7 +37,7 @@
         <!-- Manual Input Area -->
         <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col gap-3">
             <label class="text-sm font-medium text-gray-700">ປ້ອນລະຫັດບາໂຄດດ້ວຍຕົນເອງ</label>
-            <input type="text" id="manualBarcode" placeholder="ລະບຸລະຫັດບາໂຄດ..."
+            <input type="text" id="manualBarcode" placeholder="ລະບຸລະຫັດບາໂຄດ..." oninput="this.value = this.value.toUpperCase()"
                    class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
             <div class="flex gap-2">
                 <button onclick="handleManualSearch()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
@@ -84,8 +84,8 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">ສະຖານະ</label>
                         <select id="modalStatus" required
                                 class="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="ສຳເລັດ">ສຳເລັດ (Success)</option>
-                            <option value="ເກີດບັນຫາ">ເກີດບັນຫາ (Issue)</option>
+                            <option value="ສຳເລັດ">ສຳເລັດ</option>
+                            <option value="ເກີດບັນຫາ">ເກີດບັນຫາ</option>
                         </select>
                     </div>
                     <div class="mt-4">
@@ -141,7 +141,7 @@
             document.getElementById('dataModal').classList.remove('hidden');
             document.getElementById('modalBarcode').value = barcodeData;
             setCurrentDate();
-            document.getElementById('modalStatus').value = 'ສຳເລັດ';
+            document.getElementById('modalStatus').value = 'ເກີດບັນຫາ';
             document.getElementById('modalDetails').value = '';
         }
 

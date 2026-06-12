@@ -45,8 +45,7 @@
                   rows="6"
                   class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4 focus:border-blue-500 outline-none uppercase"
                   placeholder="ໃສ່ຂໍ້ມູນ..."
-                  oninput="this.value = this.value.toUpperCase(); resetTimer();">
-        </textarea>
+                  oninput="this.value = this.value.toUpperCase(); resetTimer();"></textarea>
 
         <!-- BUTTON -->
         <div class="flex gap-2">
@@ -170,12 +169,12 @@
     // CONFIRM
     function confirmAndDownload() {
 
-        if (confirm("ຕ້ອງການດາວໂຫຼດ QR CODE ທັງໝົດ (.ZIP) ຫຼືບໍ່?")) {
+        if (confirm("ຕ້ອງການດາວໂຫຼດ QR CODE ທັງໝົດ (.ZIP) ທີ່ມີຊື່ກຳກັບ ຫຼືບໍ່?")) {
             downloadAll();
         }
     }
 
-    // DOWNLOAD ZIP
+    // DOWNLOAD ZIP WITH TEXT LABELS
     async function downloadAll() {
 
         resetTimer();
@@ -187,17 +186,64 @@
 
         for (let i = 0; i < currentQRCodes.length; i++) {
 
-            const img = currentQRCodes[i].qrDiv.querySelector('img');
+            const item = currentQRCodes[i];
+            const img = item.qrDiv.querySelector('img');
 
             if (img) {
+                // 1. ສ້າງ Canvas ຂຶ້ນມາເພື່ອແຕ້ມຮູບ QR ແລະ ຂໍ້ຄວາມໃສ່ຮ່ວມກັນ
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const qrSize = 200; // ຂະໜາດ QR Code
+                const padding = 20; // ໄລຍະຫ່າງຂອບ
+                const textSpace = 50; // ພື້ນທີ່ສຳລັບຂຽນຊື່/ຂໍ້ຄວາມ
+                
+                canvas.width = qrSize + (padding * 2); // ຄວາມກວ້າງທັງໝົດ 240px
+                canvas.height = qrSize + padding + textSpace; // ຄວາມສູງທັງໝົດ 270px
 
-                const response = await fetch(img.src);
-                const blob = await response.blob();
+                // 2. ຖົມພື້ນຫຼັງດ້ວຍສີຂາວ
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                zip.file(`QRCODE_${i + 1}.png`, blob);
+                // 3. ແຕ້ມຮູບ QR Code ໃສ່ Canvas
+                await new Promise((resolve) => {
+                    const tempImg = new Image();
+                    tempImg.onload = () => {
+                        ctx.drawImage(tempImg, padding, padding, qrSize, qrSize);
+                        resolve();
+                    };
+                    tempImg.src = img.src;
+                });
+
+                // 4. ຂຽນຂໍ້ຄວາມ/ຊື່ ໃສ່ກ້ອງ QR Code
+                ctx.fillStyle = '#374151'; // ໃຊ້ສີເທົາເຂັ້ມ (gray-700)
+                ctx.font = 'bold 14px sans-serif'; // ກຳນົດ Font ແລະ ຂະໜາດ
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                
+                const labelText = item.text;
+                const maxTextWidth = qrSize; // ກຳນົດບໍ່ໃຫ້ຂໍ້ຄວາມກວ້າງກວ່າຮູບ QR
+                const textY = qrSize + padding + 10; // ຕຳແໜ່ງແນວຕັ້ງຂອງຂໍ້ຄວາມ
+
+                // ປັບຂະໜາດ Font ໃຫ້ໜ້ອຍລົງ ຖ້າຂໍ້ຄວາມຍາວເກີນໄປ
+                if (ctx.measureText(labelText).width > maxTextWidth) {
+                    ctx.font = 'bold 11px sans-serif';
+                }
+                
+                ctx.fillText(labelText, canvas.width / 2, textY, maxTextWidth);
+
+                // 5. ແປງ Canvas ໃຫ້ເປັນ Blob (ຮູບພາບ PNG)
+                const blob = await new Promise((resolve) => {
+                    canvas.toBlob((b) => resolve(b), 'image/png');
+                });
+
+                // 6. ຕັ້ງຊື່ໄຟລ໌ໂດຍເອົາຊື່ QR Code ມາໃສ່ນຳ (ຕັດຕົວອັກສອນພິເສດອອກເພື່ອບໍ່ໃຫ້ໄຟລ໌ມີບັນຫາ)
+                const sanitizedText = labelText.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 30);
+                zip.file(`QR_${i + 1}_${sanitizedText}.png`, blob);
             }
         }
 
+        // 7. ສ້າງໄຟລ໌ ZIP ແລະ ດາວໂຫຼດ
         const zipBlob = await zip.generateAsync({
             type: "blob"
         });

@@ -76,7 +76,6 @@
                 { facingMode: "environment" }, 
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => {
-                    // ຢຸດກ້ອງທັນທີເມື່ອສະແກນໄດ້
                     stopScanner();
                     openModal(decodedText);
                 }
@@ -95,13 +94,25 @@
             }
         }
 
+        async function turnOffFlash() {
+            if (isFlashOn && html5QrCode) {
+                const track = html5QrCode.getRunningTrackCapabilities();
+                if (track && track.torch) {
+                    isFlashOn = false;
+                    await html5QrCode.applyVideoConstraints({ advanced: [{ torch: false }] });
+                }
+            }
+        }
+
         function stopScanner() {
             if (html5QrCode) {
                 html5QrCode.stop().catch(err => console.log(err));
             }
         }
 
-        function openModal(barcodeData) {
+        async function openModal(barcodeData) {
+            // ປິດ Flash ເມື່ອ Pop-up ຂຶ້ນມາ
+            await turnOffFlash();
             document.getElementById('dataModal').classList.remove('hidden');
             document.getElementById('modalBarcode').value = barcodeData;
             setCurrentDate();
@@ -109,7 +120,7 @@
 
         function closeModal() {
             document.getElementById('dataModal').classList.add('hidden');
-            initScanner(); // ເປີດກ້ອງໃໝ່ຫຼັງປິດ Modal
+            initScanner();
         }
 
         function handleManualSearch() {

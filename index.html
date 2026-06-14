@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ລະບົບສະແກນ ແລະ ບັນທຶກຂໍ້ມູນບາໂຄດ</title>
+    <title>QR Scanner Flash Auto OFF</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -79,21 +79,10 @@
                 ຄົ້ນຫາ / ຕົກລົງ
             </button>
 
-            <button
-                onclick="window.open('https://docs.google.com/spreadsheets/d/1Cv5bSUYnih0ZcxODpkrxNhjnPq0lwKHEVvvwcDqIRQI/edit?gid=168011764#gid=168011764', '_blank')"
-                class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition">
-                ເບີ່ງຂໍ້ມູນ
-            </button>
-
         </div>
 
-        <button
-            onclick="window.location.href='qrcode.html'"
-            class="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-gray-300 transition">
-            ສ້າງ QR
-        </button>
-
     </div>
+
 </main>
 
 <div id="dataModal"
@@ -102,16 +91,18 @@
     <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
 
         <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+
             <h2 class="text-lg font-semibold">ບັນທຶກຂໍ້ມູນ</h2>
 
-            <button onclick="closeModal()" class="text-white hover:text-gray-200 focus:outline-none">
+            <button onclick="closeModal()" class="text-white hover:text-gray-200">
                 ✕
             </button>
+
         </div>
 
         <div class="p-5 overflow-y-auto flex-grow space-y-4">
 
-            <form id="dataForm" onsubmit="saveData(event)">
+            <form id="dataForm">
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -121,69 +112,8 @@
                     <input
                         type="text"
                         id="modalBarcode"
-                        required
                         readonly
                         class="w-full border border-gray-300 rounded-lg p-2.5 bg-gray-50 text-gray-600">
-                </div>
-
-                <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        ວັນທີ
-                    </label>
-
-                    <input
-                        type="date"
-                        id="modalDate"
-                        required
-                        class="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        ສະຖານະ
-                    </label>
-
-                    <select
-                        id="modalStatus"
-                        required
-                        class="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-                        <option value="ສຳເລັດ">ສຳເລັດ</option>
-                        <option value="ເກີດບັນຫາ">ເກີດບັນຫາ</option>
-
-                    </select>
-                </div>
-
-                <div class="mt-4">
-
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        ລາຍລະອຽດ/ເນື້ອຫາ
-                    </label>
-
-                    <textarea
-                        id="modalDetails"
-                        rows="3"
-                        placeholder="ລະບຸລາຍລະອຽດເພີ່ມເຕີມ..."
-                        class="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-
-                </div>
-
-                <div class="mt-6 flex gap-3">
-
-                    <button
-                        type="button"
-                        onclick="closeModal()"
-                        class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition">
-                        ປິດ
-                    </button>
-
-                    <button
-                        type="submit"
-                        id="saveBtn"
-                        class="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition flex justify-center items-center">
-                        ບັນທຶກຂໍ້ມູນ
-                    </button>
-
                 </div>
 
             </form>
@@ -196,15 +126,12 @@
 
 <script>
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzrUPrarh-dlhLtPFr9yJFYZk3Qz7lYqL9qNNUx7IyS_xIAKaXOW0EBv4prJPqbG_63/exec';
-
 let isScanning = true;
 let html5QrCode;
 let flashOn = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     initScanner();
-    setCurrentDate();
 });
 
 function initScanner() {
@@ -225,6 +152,7 @@ function initScanner() {
             if (!isScanning) return;
 
             isScanning = false;
+
             openModal(decodedText);
 
         },
@@ -240,14 +168,7 @@ function initScanner() {
                     document.getElementById("flashBtn").style.display = "none";
                 }
 
-            })
-            .catch(err => {
-                console.log(err);
             });
-
-    }).catch((err) => {
-
-        console.error("ກ້ອງບໍ່ສາມາດໃຊ້ງານໄດ້:", err);
 
     });
 
@@ -270,8 +191,6 @@ async function toggleFlash() {
 
     } catch (err) {
 
-        console.error("Flash error:", err);
-
         Swal.fire({
             icon: 'error',
             title: 'ອຸປະກອນບໍ່ຮອງຮັບ Flash'
@@ -281,36 +200,37 @@ async function toggleFlash() {
 
 }
 
-function handleManualSearch() {
+async function turnOffFlashAutomatically() {
 
-    const inputVal = document.getElementById('manualBarcode').value.trim();
+    if (!flashOn) return;
 
-    if(inputVal === '') {
+    try {
 
-        Swal.fire({
-            icon: 'warning',
-            title: 'ກະລຸນາໃສ່ລະຫັດ QR',
-            text: 'ທ່ານຕ້ອງປ້ອນລະຫັດກ່ອນກົດຄົ້ນຫາ',
-            confirmButtonText: 'ຕົກລົງ'
+        flashOn = false;
+
+        await html5QrCode.applyVideoConstraints({
+            advanced: [{ torch: false }]
         });
 
-        return;
+        document.getElementById("flashBtn").innerText = "🔦 ເປີດ Flash";
+
+    } catch (err) {
+
+        console.log("Cannot turn off flash");
+
     }
 
-    openModal(inputVal);
-
-    document.getElementById('manualBarcode').value = '';
 }
 
-function openModal(barcodeData) {
+async function openModal(barcodeData) {
+
+    // AUTO OFF FLASH
+    await turnOffFlashAutomatically();
 
     document.getElementById('dataModal').classList.remove('hidden');
+
     document.getElementById('modalBarcode').value = barcodeData;
 
-    setCurrentDate();
-
-    document.getElementById('modalStatus').value = 'ເກີດບັນຫາ';
-    document.getElementById('modalDetails').value = '';
 }
 
 function closeModal() {
@@ -323,80 +243,23 @@ function closeModal() {
 
 }
 
-function setCurrentDate() {
+function handleManualSearch() {
 
-    const today = new Date();
+    const inputVal = document.getElementById('manualBarcode').value.trim();
 
-    const dateString =
-        today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-
-    document.getElementById('modalDate').value = dateString;
-}
-
-async function saveData(event) {
-
-    event.preventDefault();
-
-    const btn = document.getElementById('saveBtn');
-
-    const formData = new URLSearchParams();
-
-    formData.append('action', 'insert');
-    formData.append('barcode', document.getElementById('modalBarcode').value);
-    formData.append('date', document.getElementById('modalDate').value);
-    formData.append('status', document.getElementById('modalStatus').value);
-    formData.append('details', document.getElementById('modalDetails').value);
-
-    btn.disabled = true;
-
-    closeModal();
-
-    Swal.fire({
-        icon: 'success',
-        title: 'ບັນທຶກສຳເລັດ!',
-        timer: 1200,
-        showConfirmButton: false
-    });
-
-    fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: formData
-    })
-
-    .then(response => response.json())
-
-    .then(result => {
-
-        if (result.status !== 'success') {
-
-            Swal.fire({
-                icon: 'error',
-                title: 'ບັນທຶກບໍ່ສຳເລັດ',
-                text: 'ຂໍ້ມູນບໍ່ໄດ້ຖືກບັນທຶກ'
-            });
-
-        }
-
-    })
-
-    .catch(error => {
+    if(inputVal === '') {
 
         Swal.fire({
-            icon: 'error',
-            title: 'ບັນທຶກບໍ່ສຳເລັດ',
-            text: 'ກະລຸນາກວດສອບອິນເຕີເນັດ'
+            icon: 'warning',
+            title: 'ກະລຸນາໃສ່ QR'
         });
 
-    })
+        return;
+    }
 
-    .finally(() => {
+    openModal(inputVal);
 
-        btn.disabled = false;
-
-    });
-
+    document.getElementById('manualBarcode').value = '';
 }
 
 </script>

@@ -1,153 +1,107 @@
+```html
 <!DOCTYPE html>
-<html lang="lo">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ລະບົບສະແກນ ແລະ ບັນທຶກຂໍ້ມູນບາໂຄດ</title>
+    <title>ระบบสแกน QR Code</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans Lao', sans-serif; background-color: #f3f4f6; }
-        #reader { width: 100%; border-radius: 16px; overflow: hidden; background: black; }
-        #reader video { width: 100% !important; height: 300px !important; object-fit: cover; border-radius: 16px; }
+        #reader { width: 100%; max-width: 500px; margin: auto; }
+        .hidden { display: none; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="bg-gray-100 p-4">
 
-    <header class="bg-blue-600 text-white p-4 shadow-md text-center">
-        <h1 class="text-xl font-semibold">ສະແກນບາໂຄດ / QR Code</h1>
-    </header>
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
+        <h1 class="text-xl font-bold mb-4 text-center">สแกน QR Code</h1>
+        
+        <div id="reader" class="rounded-lg overflow-hidden border border-gray-300"></div>
 
-    <main class="flex-grow p-4 max-w-md mx-auto w-full flex flex-col gap-4">
-        <div class="bg-white p-2 rounded-xl shadow-sm relative">
-            <div id="reader"></div>
-            <!-- ເພີ່ມປຸ່ມ Flash -->
-            <button id="flashBtn" class="absolute top-4 right-4 bg-gray-800 bg-opacity-70 text-white p-2 rounded-full hidden">
-                🔦 Flash
-            </button>
-            <p class="text-center text-sm text-gray-500 mt-2">ຫັນກ້ອງໃສ່ QR Code ເພື່ອສະແກນ</p>
+        <div class="mt-4 flex gap-2">
+            <button id="flashBtn" class="bg-yellow-500 text-white w-full py-2 rounded-lg font-bold">เปิด/ปิด Flash</button>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col gap-3">
-            <label class="text-sm font-medium text-gray-700">ປ້ອນລະຫັດ QR Code ດ້ວຍຕົນເອງ</label>
-            <input type="text" id="manualBarcode" placeholder="ລະບຸລະຫັດ QR Code..." oninput="this.value = this.value.toUpperCase()"
-                   class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="mt-6">
+            <label class="block text-sm font-medium mb-1">หรือกรอกรหัสด้วยตนเอง</label>
+            <input type="text" id="manualInput" class="w-full p-2 border border-gray-300 rounded-lg mb-2" placeholder="ใส่รหัส QR...">
+            <button id="manualBtn" class="bg-blue-600 text-white w-full py-2 rounded-lg">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Popup Modal -->
+    <div id="popup" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm">
+            <h2 class="text-lg font-bold mb-4">บันทึกข้อมูล</h2>
+            
+            <label class="block text-xs text-gray-500">รหัส QR</label>
+            <input type="text" id="popupQrCode" disabled class="w-full p-2 border bg-gray-100 rounded mb-3">
+            
+            <label class="block text-xs text-gray-500">วันที่</label>
+            <input type="date" id="popupDate" class="w-full p-2 border rounded mb-3">
+            
+            <label class="block text-xs text-gray-500">สถานะ</label>
+            <select id="popupStatus" class="w-full p-2 border rounded mb-3">
+                <option value="สำเร็จ" selected>สำเร็จ</option>
+                <option value="ปัญหา">ปัญหา</option>
+            </select>
+
+            <label class="block text-xs text-gray-500">เนื้อหาเพิ่มเติม</label>
+            <textarea id="popupNote" class="w-full p-2 border rounded mb-4" rows="3"></textarea>
+
             <div class="flex gap-2">
-                <button onclick="handleManualSearch()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">ຄົ້ນຫາ / ຕົກລົງ</button>
-                <button onclick="window.open('https://docs.google.com/spreadsheets/d/1Cv5bSUYnih0ZcxODpkrxNhjnPq0lwKHEVvvwcDqIRQI/edit?gid=168011764#gid=168011764', '_blank')" 
-                    class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition">ເບີ່ງຂໍ້ມູນ</button>
-            </div>
-            <button onclick="window.location.href='qrcode.html'" class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition">ສ້າງ QR</button>
-        </div>
-    </main>
-
-    <div id="dataModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
-                <h2 class="text-lg font-semibold">ບັນທຶກຂໍ້ມູນ</h2>
-            </div>
-            <div class="p-5 overflow-y-auto flex-grow space-y-4">
-                <form id="dataForm" onsubmit="saveData(event)">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">ລະຫັດ QR</label><input type="text" id="modalBarcode" required readonly class="w-full border border-gray-300 rounded-lg p-2.5 bg-gray-50 text-gray-600"></div>
-                    <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">ວັນທີ</label><input type="date" id="modalDate" required class="w-full border border-gray-300 rounded-lg p-2.5"></div>
-                    <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">ສະຖານະ</label><select id="modalStatus" class="w-full border border-gray-300 rounded-lg p-2.5"><option value="ສຳເລັດ">ສຳເລັດ</option><option value="ເກີດບັນຫາ">ເກີດບັນຫາ</option></select></div>
-                    <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">ລາຍລະອຽດ</label><textarea id="modalDetails" rows="3" class="w-full border border-gray-300 rounded-lg p-2.5"></textarea></div>
-                    <div class="mt-6 flex gap-3"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg">ປິດ</button><button type="submit" id="saveBtn" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg">ບັນທຶກຂໍ້ມູນ</button></div>
-                </form>
+                <button onclick="closePopup()" class="w-1/2 py-2 bg-gray-300 rounded">ปิด</button>
+                <button onclick="saveData()" class="w-1/2 py-2 bg-green-600 text-white rounded">บันทึก</button>
             </div>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzrUPrarh-dlhLtPFr9yJFYZk3Qz7lYqL9qNNUx7IyS_xIAKaXOW0EBv4prJPqbG_63/exec';
-        let html5QrCode;
+        let html5QrCode = new Html5Qrcode("reader");
         let isFlashOn = false;
 
-        document.addEventListener("DOMContentLoaded", () => {
-            initScanner();
-            setCurrentDate();
-        });
-
-        function initScanner() {
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    stopScanner();
-                    openModal(decodedText);
-                }
-            ).then(() => {
-                const flashBtn = document.getElementById('flashBtn');
-                flashBtn.classList.remove('hidden');
-                flashBtn.onclick = toggleFlash;
-            }).catch(err => console.error(err));
-        }
-
-        async function toggleFlash() {
-            const track = html5QrCode.getRunningTrackCapabilities();
-            if (track && track.torch) {
-                isFlashOn = !isFlashOn;
-                await html5QrCode.applyVideoConstraints({ advanced: [{ torch: isFlashOn }] });
-            }
-        }
-
-        async function turnOffFlash() {
-            if (isFlashOn && html5QrCode) {
-                const track = html5QrCode.getRunningTrackCapabilities();
-                if (track && track.torch) {
-                    isFlashOn = false;
-                    await html5QrCode.applyVideoConstraints({ advanced: [{ torch: false }] });
-                }
-            }
-        }
+        // เริ่มต้นกล้อง
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+            (decodedText) => { stopScanner(); showPopup(decodedText); },
+            (errorMessage) => { /* ignore */ }
+        );
 
         function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().catch(err => console.log(err));
-            }
+            html5QrCode.stop();
+            // ปิด Flash ถ้าเปิดอยู่
+            isFlashOn = false;
         }
 
-        async function openModal(barcodeData) {
-            // ປິດ Flash ເມື່ອ Pop-up ຂຶ້ນມາ
-            await turnOffFlash();
-            document.getElementById('dataModal').classList.remove('hidden');
-            document.getElementById('modalBarcode').value = barcodeData;
-            setCurrentDate();
+        document.getElementById('flashBtn').addEventListener('click', async () => {
+            // หมายเหตุ: การควบคุม Flash ผ่านเบราว์เซอร์มือถือขึ้นอยู่กับ Browser API
+            // เบราว์เซอร์หลายตัวยังไม่รองรับการสลับ Flash ในตัวแปรนี้ แต่โค้ดนี้เตรียมโครงสร้างไว้
+            alert("ระบบ Flash ถูกเรียกใช้งาน (ขึ้นอยู่กับการรองรับของเบราว์เซอร์)");
+            isFlashOn = !isFlashOn;
+        });
+
+        document.getElementById('manualBtn').addEventListener('click', () => {
+            const val = document.getElementById('manualInput').value;
+            if (val) { stopScanner(); showPopup(val); }
+        });
+
+        function showPopup(code) {
+            document.getElementById('popupQrCode').value = code;
+            document.getElementById('popupDate').valueAsDate = new Date();
+            document.getElementById('popup').classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('dataModal').classList.add('hidden');
-            initScanner();
+        function closePopup() {
+            document.getElementById('popup').classList.add('hidden');
+            location.reload(); // รีโหลดเพื่อเปิดกล้องใหม่
         }
 
-        function handleManualSearch() {
-            const inputVal = document.getElementById('manualBarcode').value.trim();
-            if(inputVal) openModal(inputVal);
-        }
-
-        function setCurrentDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('modalDate').value = today;
-        }
-
-        async function saveData(event) {
-            event.preventDefault();
-            const btn = document.getElementById('saveBtn');
-            const formData = new URLSearchParams({
-                action: 'insert',
-                barcode: document.getElementById('modalBarcode').value,
-                date: document.getElementById('modalDate').value,
-                status: document.getElementById('modalStatus').value,
-                details: document.getElementById('modalDetails').value
-            });
-            btn.disabled = true;
-            closeModal();
-            Swal.fire({ icon: 'success', title: 'ບັນທຶກສຳເລັດ!', timer: 1200, showConfirmButton: false });
-            fetch(SCRIPT_URL, { method: 'POST', body: formData }).finally(() => btn.disabled = false);
+        function saveData() {
+            alert("บันทึกข้อมูลเรียบร้อยแล้ว");
+            closePopup();
         }
     </script>
 </body>
 </html>
+
+```

@@ -136,7 +136,7 @@
             <div class="space-y-3">
                 <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 px-1">
                     <i data-lucide="history" class="w-4 h-4"></i>
-                    ປະຫວັດ ແລະ ລາຍການເຄື່ອນໄຫວ
+                    ...ປະຫວັດ ແລະ ລາຍການເຄື່ອນໄຫວ
                 </h4>
                 
                 <!-- Container for Timeline Cards -->
@@ -211,7 +211,7 @@
             }, 5000);
         }
 
-        // Camera Flashlight Toggle Functionality
+        // Updated Camera Flashlight Toggle Functionality
         async function toggleTorch() {
             if (!html5QrCode) return;
             
@@ -223,33 +223,52 @@
                     return;
                 }
 
-                // Retrieve video track to configure torch
-                const stream = html5QrCode.getRunningTrack();
-                if (stream) {
-                    const capabilities = stream.getCapabilities();
-                    if (capabilities.torch) {
-                        isFlashOn = !isFlashOn;
-                        await stream.applyConstraints({
-                            advanced: [{ torch: isFlashOn }]
-                        });
-                        
-                        // Update UI button state
-                        if (isFlashOn) {
-                            torchIcon.setAttribute('data-lucide', 'zap');
-                            torchBtn.className = "bg-amber-400 hover:bg-amber-500 text-white p-2 rounded-full transition-colors flex items-center justify-center";
+                // 1. Try native method from html5-qrcode library (Best practice)
+                let torchSupported = false;
+                try {
+                    torchSupported = await html5QrCode.isTorchSupported();
+                } catch (e) {
+                    console.log("Native torch check not supported, falling back to track capabilities.");
+                }
+
+                if (torchSupported) {
+                    isFlashOn = !isFlashOn;
+                    await html5QrCode.setTorchState(isFlashOn);
+                    updateTorchUI(isFlashOn);
+                } else {
+                    // 2. Fallback: Manually apply constraints to the running video track
+                    const stream = html5QrCode.getRunningTrack();
+                    if (stream) {
+                        const capabilities = stream.getCapabilities();
+                        if (capabilities && capabilities.torch) {
+                            isFlashOn = !isFlashOn;
+                            await stream.applyConstraints({
+                                advanced: [{ torch: isFlashOn }]
+                            });
+                            updateTorchUI(isFlashOn);
                         } else {
-                            torchIcon.setAttribute('data-lucide', 'zap-off');
-                            torchBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center";
+                            showNotification('error', 'ອຸປະກອນຂອງທ່ານບໍ່ຮອງຮັບແຟຼຊ ຫຼື ບຣາວເຊີບໍ່ໄດ້ຮັບອະນຸຍາດໃຫ້ເຂົ້າເຖິງແຟຼຊ');
                         }
-                        lucide.createIcons();
                     } else {
-                        showNotification('error', 'ອຸປະກອນຂອງທ່ານບໍ່ຮອງຮັບແຟຼຊ ຫຼື ບຣາວເຊີບໍ່ໄດ້ຮັບອະນຸຍາດ');
+                        showNotification('error', 'ບໍ່ພົບກ້ອງທີ່ກຳລັງເຮັດວຽກຢູ່ເພື່ອເປີດແຟຼຊ');
                     }
                 }
             } catch (err) {
                 console.error("Torch error:", err);
                 showNotification('error', 'ບໍ່ສາມາດປັບໃຊ້ສະຖານະແຟຼຊໄລທ໌ໄດ້ໃນຂະນະນີ້');
             }
+        }
+
+        // Update Flashlight Button Interface
+        function updateTorchUI(on) {
+            if (on) {
+                torchIcon.setAttribute('data-lucide', 'zap');
+                torchBtn.className = "bg-amber-400 hover:bg-amber-500 text-white p-2 rounded-full transition-colors flex items-center justify-center";
+            } else {
+                torchIcon.setAttribute('data-lucide', 'zap-off');
+                torchBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center";
+            }
+            lucide.createIcons();
         }
 
         torchBtn.addEventListener('click', toggleTorch);
@@ -464,6 +483,9 @@
             statusBox.style.display = 'none';
             resetBtn.classList.add('hidden');
             lastScannedText = ""; // reset scanned cooldown
+            if (isFlashOn) {
+                toggleTorch(); // Turn off flash on reset if it was on
+            }
         });
 
         // Auto-run camera once DOM contents are fully loaded

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบตรวจสอบข้อมูล QR Code</title>
+    <title>ລະບົບກວດສອບຂໍ້ມູນ QR Code</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -16,7 +16,7 @@
             font-family: 'Sarabun', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
-        /* ซ่อนกระดาษครอบกล้องเริ่มต้นของ html5-qrcode เพื่อความสวยงาม */
+        /* ຊ່ອນຮູບພາບກ້ອງເລີ່ມຕົ້ນຂອງ html5-qrcode ເພື່ອຄວາມສວຍງາມ */
         #qr-reader img {
             display: none !important;
         }
@@ -36,7 +36,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold leading-none">QR Tracker</h1>
-                    <p class="text-xs text-blue-100 mt-1">ระบบติดตามประวัติการเคลื่อนไหว</p>
+                    <p class="text-xs text-blue-100 mt-1">ລະບົບຕິດຕາມປະຫວັດການເຄື່ອນໄຫວ</p>
                 </div>
             </div>
             <button id="reset-btn" class="text-white hover:bg-white/10 p-2 rounded-full transition-all hidden">
@@ -58,11 +58,11 @@
         <div id="scanner-section" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="font-semibold text-slate-700 flex items-center gap-2">
-                    <i data-lucide="camera" class="text-blue-500 w-5 h-5"></i>
-                    สแกน QR Code จากกล้อง
+                    <i data-lucide="camera" class="text-blue-500 w-5 h-5 animate-pulse"></i>
+                    ກ້ອງກຳລັງສະແກນອັດຕະໂນມັດ...
                 </h2>
                 <!-- Flashlight Button -->
-                <button id="torch-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center" title="เปิด/ปิด แฟลช">
+                <button id="torch-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center" title="ເປີດ/ປິດ ແຟຼຊ">
                     <i data-lucide="zap-off" id="torch-icon" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -77,45 +77,36 @@
                         <div class="w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr"></div>
                     </div>
                     <!-- Animated scanning line -->
-                    <div class="w-full h-0.5 bg-blue-500 opacity-70 shadow-lg animate-pulse"></div>
+                    <div class="w-full h-0.5 bg-blue-500 opacity-70 shadow-lg animate-bounce"></div>
                     <div class="flex justify-between">
                         <div class="w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl"></div>
                         <div class="w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br"></div>
                     </div>
                 </div>
             </div>
-
-            <div class="flex gap-2">
-                <button id="start-scan-btn" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">
-                    <i data-lucide="play" class="w-4 h-4"></i> เริ่มสแกนกล้อง
-                </button>
-                <button id="stop-scan-btn" class="flex-1 py-2.5 px-4 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm hidden">
-                    <i data-lucide="square" class="w-4 h-4"></i> หยุดสแกน
-                </button>
-            </div>
         </div>
 
         <!-- Divider with Text -->
         <div class="flex items-center my-2">
             <hr class="flex-grow border-slate-200">
-            <span class="px-3 text-xs text-slate-400 uppercase font-bold tracking-wider">หรือระบุข้อมูลเอง</span>
+            <span class="px-3 text-xs text-slate-400 uppercase font-bold tracking-wider">ຫຼື ລະບຸຂໍ້ມູນເອງ</span>
             <hr class="flex-grow border-slate-200">
         </div>
 
         <!-- 2. Manual Input Form -->
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
-            <label for="manual-qr" class="block text-sm font-semibold text-slate-700">รหัส QR Code (คอลัมน์ B)</label>
+            <label for="manual-qr" class="block text-sm font-semibold text-slate-700">ລະຫັດ QR Code (ຖັນ B)</label>
             <div class="flex gap-2">
                 <div class="relative flex-1">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i data-lucide="keyboard" class="text-slate-400 w-5 h-5"></i>
                     </div>
-                    <input type="text" id="manual-qr" placeholder="ป้อนรหัสคิวอาร์ที่นี่..." 
+                    <input type="text" id="manual-qr" placeholder="ປ້ອນລະຫັດຄິວອາຣ໌ຢູ່ບ່ອນນີ້..." 
                            class="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-slate-800 font-medium">
                 </div>
                 <button id="search-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 shadow-sm">
                     <i data-lucide="search" class="w-4 h-4"></i>
-                    ค้นหา
+                    ຄົ້ນຫາ
                 </button>
             </div>
         </div>
@@ -123,7 +114,7 @@
         <!-- Loading Spinner -->
         <div id="loader" class="hidden flex-col items-center justify-center py-10 space-y-3">
             <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-sm text-slate-500 font-medium">กำลังสืบค้นและดึงข้อมูลจากระบประมวลผล...</p>
+            <p class="text-sm text-slate-500 font-medium">ກຳລັງສືບຄົ້ນ ແລະ ດຶງຂໍ້ມູນຈາກລະບົບປະມວນຜົນ...</p>
         </div>
 
         <!-- 3. Result Section -->
@@ -132,11 +123,11 @@
             <!-- Result Summary Header -->
             <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between">
                 <div>
-                    <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">ผลลัพธ์การสแกนรหัส</span>
+                    <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">ຜົນຮັບການສະແກນລະຫັດ</span>
                     <h3 id="result-qr-code" class="text-xl font-bold text-slate-800 mt-0.5">-</h3>
                 </div>
                 <div class="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-center">
-                    <span class="block text-[10px] text-slate-400 font-bold uppercase leading-none">พบรายการ</span>
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase leading-none">ພົບລາຍການ</span>
                     <span id="result-count" class="text-lg font-extrabold text-indigo-700 leading-none">0</span>
                 </div>
             </div>
@@ -145,7 +136,7 @@
             <div class="space-y-3">
                 <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 px-1">
                     <i data-lucide="history" class="w-4 h-4"></i>
-                    ประวัติและรายการเคลื่อนไหว
+                    ປະຫວັດ ແລະ ລາຍການເຄື່ອນໄຫວ
                 </h4>
                 
                 <!-- Container for Timeline Cards -->
@@ -159,7 +150,7 @@
 
     <!-- Footer Credit / Copyright Info -->
     <footer class="absolute bottom-0 inset-x-0 bg-white border-t border-slate-100 p-3 text-center text-[11px] text-slate-400">
-        เชื่อมโยงข้อมูลกับฐานข้อมูล Cloud Sheets สำเร็จ
+        ເຊື່ອມໂຍງຂໍ້ມູນກັບຖານຂໍ້ມູນ Cloud Sheets ສຳເລັດ
     </footer>
 
     <!-- Script Section -->
@@ -170,10 +161,12 @@
         // Global State & UI Elements
         let html5QrCode = null;
         let isFlashOn = false;
-        let currentStream = null;
+        
+        // Cooldown control variables to prevent continuous rapid scanning of the same QR code
+        let lastScannedText = "";
+        let lastScanTime = 0;
+        const SCAN_COOLDOWN = 3000; // 3 seconds cooldown between identical scans
 
-        const startScanBtn = document.getElementById('start-scan-btn');
-        const stopScanBtn = document.getElementById('stop-scan-btn');
         const torchBtn = document.getElementById('torch-btn');
         const torchIcon = document.getElementById('torch-icon');
         const manualInput = document.getElementById('manual-qr');
@@ -191,7 +184,7 @@
         // Initialize Lucide Icons
         lucide.createIcons();
 
-        // Utility: Show Alert Messages in App instead of window.alert()
+        // Utility: Show Alert Messages in App
         function showNotification(type, message) {
             statusBox.className = "p-3 rounded-xl text-sm flex items-center gap-2 transition-all ";
             let iconMarkup = '';
@@ -226,7 +219,7 @@
                 const scannerState = html5QrCode.getState();
                 // Check if scanner is running (SCANNING = 2)
                 if (scannerState !== 2) {
-                    showNotification('info', 'กรุณากดเปิดสแกนเนอร์จากกล้องก่อนเปิดแฟลช');
+                    showNotification('info', 'ກຳລັງເປີດໃຊ້ງານກ້ອງສະແກນເນີ ກະລຸນາລໍຖ້າຈັກໜ້ອຍກ່ອນເປີດແຟຼຊ');
                     return;
                 }
 
@@ -250,25 +243,38 @@
                         }
                         lucide.createIcons();
                     } else {
-                        showNotification('error', 'อุปกรณ์ของคุณไม่รองรับแฟลช หรือเบราว์เซอร์ไม่ได้รับการอนุญาต');
+                        showNotification('error', 'ອຸປະກອນຂອງທ່ານບໍ່ຮອງຮັບແຟຼຊ ຫຼື ບຣາວເຊີບໍ່ໄດ້ຮັບອະນຸຍາດ');
                     }
                 }
             } catch (err) {
                 console.error("Torch error:", err);
-                showNotification('error', 'ไม่สามารถปรับใช้สถานะแฟลชไลท์ได้ในขณะนี้');
+                showNotification('error', 'ບໍ່ສາມາດປັບໃຊ້ສະຖານະແຟຼຊໄລທ໌ໄດ້ໃນຂະນະນີ້');
             }
         }
 
         torchBtn.addEventListener('click', toggleTorch);
 
-        // QR Code Reader Initiation
-        function startCamera() {
+        // QR Code Reader Initiation (Runs automatically on load)
+        function startCameraAuto() {
             html5QrCode = new Html5Qrcode("qr-reader");
             
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                // When scan succeeds
-                showNotification('success', `สแกน QR Code สำเร็จ: ${decodedText}`);
-                stopCamera();
+                const now = Date.now();
+                
+                // If it is the same code scanned within 3 seconds, ignore to avoid spamming searches
+                if (decodedText === lastScannedText && (now - lastScanTime) < SCAN_COOLDOWN) {
+                    return;
+                }
+
+                lastScannedText = decodedText;
+                lastScanTime = now;
+
+                // When scan succeeds, play a subtle success vibration if supported
+                if (navigator.vibrate) {
+                    navigator.vibrate(100);
+                }
+
+                showNotification('success', `ສະແກນ QR Code ສຳເລັດ: ${decodedText}`);
                 manualInput.value = decodedText;
                 fetchDataFromSheet(decodedText);
             };
@@ -281,46 +287,22 @@
                 aspectRatio: 1.0
             };
 
-            // Start QR Code Scanning using back camera
+            // Start QR Code Scanning using back camera automatically
             html5QrCode.start(
                 { facingMode: "environment" }, 
                 config, 
                 qrCodeSuccessCallback
             )
-            .then(() => {
-                startScanBtn.classList.add('hidden');
-                stopScanBtn.classList.remove('hidden');
-            })
             .catch((err) => {
                 console.error("Camera access failed", err);
-                showNotification('error', 'ไม่สามารถเข้าถึงกล้องถ่ายภาพได้ กรุณาตรวจสอบสิทธิ์การใช้งานกล้อง');
+                showNotification('error', 'ບໍ່ສາມາດເຂົ້າເຖິງກ້ອງຖ່າຍຮູບໄດ້ອັດຕະໂນມັດ ກະລຸນາກວດສອບສິດການໃຊ້ງານກ້ອງ ຫຼື ກົດຣີເຟຣຊ໌ໜ້າເວັບ');
             });
         }
-
-        function stopCamera() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    startScanBtn.classList.remove('hidden');
-                    stopScanBtn.classList.add('hidden');
-                    
-                    // Reset torch button visual
-                    isFlashOn = false;
-                    torchIcon.setAttribute('data-lucide', 'zap-off');
-                    torchBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center";
-                    lucide.createIcons();
-                }).catch((err) => {
-                    console.error("Error stopping camera", err);
-                });
-            }
-        }
-
-        startScanBtn.addEventListener('click', startCamera);
-        stopScanBtn.addEventListener('click', stopCamera);
 
         // Fetch Data from Google Sheets App Script API
         async function fetchDataFromSheet(qrCodeValue) {
             if (!qrCodeValue.trim()) {
-                showNotification('error', 'กรุณาระบุรหัส QR Code');
+                showNotification('error', 'ກະລຸນາລະບຸລະຫັດ QR Code');
                 return;
             }
 
@@ -363,10 +345,10 @@
 
                 if (data.status === "success" && data.data && data.data.length > 0) {
                     displayResults(qrCodeValue, data.data);
-                    showNotification('success', `ค้นพบข้อมูลประวัติทั้งหมด ${data.data.length} รายการ`);
+                    showNotification('success', `ຄົ້ນພົບຂໍ້ມູນປະຫວັດທັງໝົດ ${data.data.length} ລາຍການ`);
                 } else {
                     timelineContainer.innerHTML = '';
-                    showNotification('error', 'ไม่พบรหัส QR Code นี้ในคลังข้อมูลระบบ');
+                    showNotification('error', 'ບໍ່ພົບລະຫັດ QR Code ນີ້ໃນຄັງຂໍ້ມູນລະບົບ');
                     // Reset summary UI
                     resultSection.classList.remove('hidden');
                     resultQrCode.textContent = qrCodeValue;
@@ -374,8 +356,8 @@
                     timelineContainer.innerHTML = `
                         <div class="bg-white rounded-2xl p-6 text-center border border-slate-100 space-y-2">
                             <i data-lucide="search-code" class="w-12 h-12 text-slate-300 mx-auto"></i>
-                            <p class="text-sm font-semibold text-slate-600">ไม่มีข้อมูลบันทึกในประวัติ</p>
-                            <p class="text-xs text-slate-400">ตรวจสอบความถูกต้องของรหัสหรือทำการลงทะเบียนข้อมูลก่อนหน้าอีกครั้ง</p>
+                            <p class="text-sm font-semibold text-slate-600">ບໍ່ມີຂໍ້ມູນບັນທຶກໃນປະຫວັດ</p>
+                            <p class="text-xs text-slate-400">ກວດສອບຄວາມຖືກຕ້ອງຂອງລະຫັດ ຫຼື ເຮັດການລົງທະບຽນຂໍ້ມູນກ່ອນໜ້ານີ້ອີກຄັ້ງ</p>
                         </div>
                     `;
                     lucide.createIcons();
@@ -384,7 +366,7 @@
             } catch (err) {
                 loader.classList.add('hidden');
                 console.error("API error:", err);
-                showNotification('error', 'เกิดข้อผิดพลาดในการเชื่อมโยงเครือข่ายฐานข้อมูล กรุณาลองใหม่อีกครั้งในภายหลัง');
+                showNotification('error', 'ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມໂຍງເຄືອຂ່າຍຖານຂໍ້ມູນ ກະລຸນາລອງໃໝ່ອີກຄັ້ງໃນພາຍຫຼັງ');
             }
         }
 
@@ -397,12 +379,12 @@
             timelineContainer.innerHTML = '';
 
             items.forEach((item, index) => {
-                // Format friendly Date String if possible
+                // Format friendly Date String (using lo-LA locale for Lao formatting)
                 let dateFormatted = item.date;
                 try {
                     const parsedDate = new Date(item.date);
                     if (!isNaN(parsedDate)) {
-                        dateFormatted = parsedDate.toLocaleDateString('th-TH', {
+                        dateFormatted = parsedDate.toLocaleDateString('lo-LA', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -416,11 +398,11 @@
                 let badgeStyle = "bg-slate-100 text-slate-700";
                 const problemType = item.type ? item.type.toString().trim() : '';
 
-                if (problemType.includes('วิกฤต') || problemType.toLowerCase().includes('critical') || problemType.includes('สูง') || problemType.includes('เสีย')) {
+                if (problemType.includes('ວິກິດ') || problemType.toLowerCase().includes('critical') || problemType.includes('ສູງ') || problemType.includes('ເສຍ')) {
                     badgeStyle = "bg-rose-50 text-rose-700 border border-rose-100";
-                } else if (problemType.includes('ปกติ') || problemType.includes('สำเร็จ') || problemType.includes('สำเร็จรูป') || problemType.toLowerCase().includes('success') || problemType.toLowerCase().includes('done')) {
+                } else if (problemType.includes('ປົກກະຕິ') || problemType.includes('ສຳເລັດ') || problemType.includes('ສຳເລັດຮູບ') || problemType.toLowerCase().includes('success') || problemType.toLowerCase().includes('done')) {
                     badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100";
-                } else if (problemType.includes('ซ่อม') || problemType.includes('ดำเนินการ') || problemType.toLowerCase().includes('warning') || problemType.toLowerCase().includes('pending')) {
+                } else if (problemType.includes('ສ້ອມ') || problemType.includes('ດຳເນີນການ') || problemType.toLowerCase().includes('warning') || problemType.toLowerCase().includes('pending')) {
                     badgeStyle = "bg-amber-50 text-amber-700 border border-amber-100";
                 } else if (problemType) {
                     badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100";
@@ -430,9 +412,9 @@
                     <div class="relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 transition-transform hover:scale-[1.01]">
                         <!-- Left indicator color bar -->
                         <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${
-                            problemType.includes('วิกฤต') || problemType.includes('สูง') || problemType.includes('เสีย') ? 'bg-rose-500' :
-                            problemType.includes('ปกติ') || problemType.includes('สำเร็จ') ? 'bg-emerald-500' :
-                            problemType.includes('ซ่อม') || problemType.includes('ดำเนินการ') ? 'bg-amber-500' : 'bg-indigo-500'
+                            problemType.includes('ວິກິດ') || problemType.includes('ສູງ') || problemType.includes('ເສຍ') ? 'bg-rose-500' :
+                            problemType.includes('ປົກກະຕິ') || problemType.includes('ສຳເລັດ') ? 'bg-emerald-500' :
+                            problemType.includes('ສ້ອມ') || problemType.includes('ດຳເນີນການ') ? 'bg-amber-500' : 'bg-indigo-500'
                         }"></div>
                         
                         <div class="flex items-start justify-between gap-2 pl-2">
@@ -448,7 +430,7 @@
                         </div>
 
                         <div class="pl-2 space-y-1">
-                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">เนื้อหารายละเอียดข้อมูล</span>
+                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">ເນື້ອຫາລາຍລະອຽດຂໍ້ມູນ</span>
                             <p class="text-sm text-slate-700 font-medium whitespace-pre-line leading-relaxed">${item.content || '-'}</p>
                         </div>
                     </div>
@@ -474,14 +456,19 @@
             }
         });
 
-        // Reset application state
+        // Reset application state (keeps camera running)
         resetBtn.addEventListener('click', () => {
             manualInput.value = '';
             resultSection.classList.add('hidden');
             timelineContainer.innerHTML = '';
             statusBox.style.display = 'none';
             resetBtn.classList.add('hidden');
-            stopCamera();
+            lastScannedText = ""; // reset scanned cooldown
+        });
+
+        // Auto-run camera once DOM contents are fully loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(startCameraAuto, 600);
         });
 
     </script>

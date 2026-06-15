@@ -1,107 +1,489 @@
-```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสแกน QR Code</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>ระบบตรวจสอบข้อมูล QR Code</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTML5-QRCode Library (for Camera Scanning) -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        #reader { width: 100%; max-width: 500px; margin: auto; }
-        .hidden { display: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Sarabun', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* ซ่อนกระดาษครอบกล้องเริ่มต้นของ html5-qrcode เพื่อความสวยงาม */
+        #qr-reader img {
+            display: none !important;
+        }
+        #qr-reader div {
+            border: none !important;
+        }
     </style>
 </head>
-<body class="bg-gray-100 p-4">
+<body class="bg-slate-50 min-h-screen flex flex-col max-w-md mx-auto shadow-2xl relative border-x border-slate-200">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
-        <h1 class="text-xl font-bold mb-4 text-center">สแกน QR Code</h1>
+    <!-- Header Section -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 sticky top-0 z-50 shadow-md">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-white/20 p-2 rounded-lg">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-none">QR Tracker</h1>
+                    <p class="text-xs text-blue-100 mt-1">ระบบติดตามประวัติการเคลื่อนไหว</p>
+                </div>
+            </div>
+            <button id="reset-btn" class="text-white hover:bg-white/10 p-2 rounded-full transition-all hidden">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Panel -->
+    <main class="flex-1 p-4 overflow-y-auto space-y-4 pb-20">
         
-        <div id="reader" class="rounded-lg overflow-hidden border border-gray-300"></div>
-
-        <div class="mt-4 flex gap-2">
-            <button id="flashBtn" class="bg-yellow-500 text-white w-full py-2 rounded-lg font-bold">เปิด/ปิด Flash</button>
+        <!-- Status Indicator / Messages -->
+        <div id="status-box" class="hidden p-3 rounded-xl text-sm flex items-center gap-2 transition-all">
+            <span id="status-icon"></span>
+            <span id="status-message"></span>
         </div>
 
-        <div class="mt-6">
-            <label class="block text-sm font-medium mb-1">หรือกรอกรหัสด้วยตนเอง</label>
-            <input type="text" id="manualInput" class="w-full p-2 border border-gray-300 rounded-lg mb-2" placeholder="ใส่รหัส QR...">
-            <button id="manualBtn" class="bg-blue-600 text-white w-full py-2 rounded-lg">ตกลง</button>
-        </div>
-    </div>
+        <!-- 1. Scanner Card -->
+        <div id="scanner-section" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="camera" class="text-blue-500 w-5 h-5"></i>
+                    สแกน QR Code จากกล้อง
+                </h2>
+                <!-- Flashlight Button -->
+                <button id="torch-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center" title="เปิด/ปิด แฟลช">
+                    <i data-lucide="zap-off" id="torch-icon" class="w-5 h-5"></i>
+                </button>
+            </div>
 
-    <!-- Popup Modal -->
-    <div id="popup" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm">
-            <h2 class="text-lg font-bold mb-4">บันทึกข้อมูล</h2>
-            
-            <label class="block text-xs text-gray-500">รหัส QR</label>
-            <input type="text" id="popupQrCode" disabled class="w-full p-2 border bg-gray-100 rounded mb-3">
-            
-            <label class="block text-xs text-gray-500">วันที่</label>
-            <input type="date" id="popupDate" class="w-full p-2 border rounded mb-3">
-            
-            <label class="block text-xs text-gray-500">สถานะ</label>
-            <select id="popupStatus" class="w-full p-2 border rounded mb-3">
-                <option value="สำเร็จ" selected>สำเร็จ</option>
-                <option value="ปัญหา">ปัญหา</option>
-            </select>
-
-            <label class="block text-xs text-gray-500">เนื้อหาเพิ่มเติม</label>
-            <textarea id="popupNote" class="w-full p-2 border rounded mb-4" rows="3"></textarea>
+            <!-- QR Camera Feed -->
+            <div class="relative overflow-hidden rounded-xl bg-slate-900 border border-slate-200 aspect-square flex items-center justify-center">
+                <div id="qr-reader" class="w-full h-full"></div>
+                <!-- Custom Scanner Overlay Grid -->
+                <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-12">
+                    <div class="flex justify-between">
+                        <div class="w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl"></div>
+                        <div class="w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr"></div>
+                    </div>
+                    <!-- Animated scanning line -->
+                    <div class="w-full h-0.5 bg-blue-500 opacity-70 shadow-lg animate-pulse"></div>
+                    <div class="flex justify-between">
+                        <div class="w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl"></div>
+                        <div class="w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br"></div>
+                    </div>
+                </div>
+            </div>
 
             <div class="flex gap-2">
-                <button onclick="closePopup()" class="w-1/2 py-2 bg-gray-300 rounded">ปิด</button>
-                <button onclick="saveData()" class="w-1/2 py-2 bg-green-600 text-white rounded">บันทึก</button>
+                <button id="start-scan-btn" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">
+                    <i data-lucide="play" class="w-4 h-4"></i> เริ่มสแกนกล้อง
+                </button>
+                <button id="stop-scan-btn" class="flex-1 py-2.5 px-4 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm hidden">
+                    <i data-lucide="square" class="w-4 h-4"></i> หยุดสแกน
+                </button>
             </div>
         </div>
-    </div>
 
+        <!-- Divider with Text -->
+        <div class="flex items-center my-2">
+            <hr class="flex-grow border-slate-200">
+            <span class="px-3 text-xs text-slate-400 uppercase font-bold tracking-wider">หรือระบุข้อมูลเอง</span>
+            <hr class="flex-grow border-slate-200">
+        </div>
+
+        <!-- 2. Manual Input Form -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+            <label for="manual-qr" class="block text-sm font-semibold text-slate-700">รหัส QR Code (คอลัมน์ B)</label>
+            <div class="flex gap-2">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="keyboard" class="text-slate-400 w-5 h-5"></i>
+                    </div>
+                    <input type="text" id="manual-qr" placeholder="ป้อนรหัสคิวอาร์ที่นี่..." 
+                           class="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-slate-800 font-medium">
+                </div>
+                <button id="search-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    ค้นหา
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="hidden flex-col items-center justify-center py-10 space-y-3">
+            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm text-slate-500 font-medium">กำลังสืบค้นและดึงข้อมูลจากระบประมวลผล...</p>
+        </div>
+
+        <!-- 3. Result Section -->
+        <div id="result-section" class="hidden space-y-4">
+            
+            <!-- Result Summary Header -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">ผลลัพธ์การสแกนรหัส</span>
+                    <h3 id="result-qr-code" class="text-xl font-bold text-slate-800 mt-0.5">-</h3>
+                </div>
+                <div class="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-center">
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase leading-none">พบรายการ</span>
+                    <span id="result-count" class="text-lg font-extrabold text-indigo-700 leading-none">0</span>
+                </div>
+            </div>
+
+            <!-- History Timeline -->
+            <div class="space-y-3">
+                <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 px-1">
+                    <i data-lucide="history" class="w-4 h-4"></i>
+                    ประวัติและรายการเคลื่อนไหว
+                </h4>
+                
+                <!-- Container for Timeline Cards -->
+                <div id="timeline-container" class="space-y-3">
+                    <!-- Dynamic Items will be appended here -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Credit / Copyright Info -->
+    <footer class="absolute bottom-0 inset-x-0 bg-white border-t border-slate-100 p-3 text-center text-[11px] text-slate-400">
+        เชื่อมโยงข้อมูลกับฐานข้อมูล Cloud Sheets สำเร็จ
+    </footer>
+
+    <!-- Script Section -->
     <script>
-        let html5QrCode = new Html5Qrcode("reader");
+        // Web App URLs
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT4F5NhaQhz-_nBEeTOynlj-L5coiVfUvQ4dqxyc5lk8N24471paZGQPBz-EFU9klMqA/exec";
+
+        // Global State & UI Elements
+        let html5QrCode = null;
         let isFlashOn = false;
+        let currentStream = null;
 
-        // เริ่มต้นกล้อง
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
-            (decodedText) => { stopScanner(); showPopup(decodedText); },
-            (errorMessage) => { /* ignore */ }
-        );
+        const startScanBtn = document.getElementById('start-scan-btn');
+        const stopScanBtn = document.getElementById('stop-scan-btn');
+        const torchBtn = document.getElementById('torch-btn');
+        const torchIcon = document.getElementById('torch-icon');
+        const manualInput = document.getElementById('manual-qr');
+        const searchBtn = document.getElementById('search-btn');
+        const loader = document.getElementById('loader');
+        const resultSection = document.getElementById('result-section');
+        const timelineContainer = document.getElementById('timeline-container');
+        const resultQrCode = document.getElementById('result-qr-code');
+        const resultCount = document.getElementById('result-count');
+        const statusBox = document.getElementById('status-box');
+        const statusIcon = document.getElementById('status-icon');
+        const statusMessage = document.getElementById('status-message');
+        const resetBtn = document.getElementById('reset-btn');
 
-        function stopScanner() {
-            html5QrCode.stop();
-            // ปิด Flash ถ้าเปิดอยู่
-            isFlashOn = false;
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Utility: Show Alert Messages in App instead of window.alert()
+        function showNotification(type, message) {
+            statusBox.className = "p-3 rounded-xl text-sm flex items-center gap-2 transition-all ";
+            let iconMarkup = '';
+
+            if (type === 'success') {
+                statusBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-100');
+                iconMarkup = '<i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>';
+            } else if (type === 'error') {
+                statusBox.classList.add('bg-rose-50', 'text-rose-800', 'border', 'border-rose-100');
+                iconMarkup = '<i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i>';
+            } else {
+                statusBox.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-100');
+                iconMarkup = '<i data-lucide="info" class="w-5 h-5 text-blue-600"></i>';
+            }
+
+            statusBox.style.display = 'flex';
+            statusIcon.innerHTML = iconMarkup;
+            statusMessage.textContent = message;
+            lucide.createIcons();
+
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                statusBox.style.display = 'none';
+            }, 5000);
         }
 
-        document.getElementById('flashBtn').addEventListener('click', async () => {
-            // หมายเหตุ: การควบคุม Flash ผ่านเบราว์เซอร์มือถือขึ้นอยู่กับ Browser API
-            // เบราว์เซอร์หลายตัวยังไม่รองรับการสลับ Flash ในตัวแปรนี้ แต่โค้ดนี้เตรียมโครงสร้างไว้
-            alert("ระบบ Flash ถูกเรียกใช้งาน (ขึ้นอยู่กับการรองรับของเบราว์เซอร์)");
-            isFlashOn = !isFlashOn;
+        // Camera Flashlight Toggle Functionality
+        async function toggleTorch() {
+            if (!html5QrCode) return;
+            
+            try {
+                const scannerState = html5QrCode.getState();
+                // Check if scanner is running (SCANNING = 2)
+                if (scannerState !== 2) {
+                    showNotification('info', 'กรุณากดเปิดสแกนเนอร์จากกล้องก่อนเปิดแฟลช');
+                    return;
+                }
+
+                // Retrieve video track to configure torch
+                const stream = html5QrCode.getRunningTrack();
+                if (stream) {
+                    const capabilities = stream.getCapabilities();
+                    if (capabilities.torch) {
+                        isFlashOn = !isFlashOn;
+                        await stream.applyConstraints({
+                            advanced: [{ torch: isFlashOn }]
+                        });
+                        
+                        // Update UI button state
+                        if (isFlashOn) {
+                            torchIcon.setAttribute('data-lucide', 'zap');
+                            torchBtn.className = "bg-amber-400 hover:bg-amber-500 text-white p-2 rounded-full transition-colors flex items-center justify-center";
+                        } else {
+                            torchIcon.setAttribute('data-lucide', 'zap-off');
+                            torchBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center";
+                        }
+                        lucide.createIcons();
+                    } else {
+                        showNotification('error', 'อุปกรณ์ของคุณไม่รองรับแฟลช หรือเบราว์เซอร์ไม่ได้รับการอนุญาต');
+                    }
+                }
+            } catch (err) {
+                console.error("Torch error:", err);
+                showNotification('error', 'ไม่สามารถปรับใช้สถานะแฟลชไลท์ได้ในขณะนี้');
+            }
+        }
+
+        torchBtn.addEventListener('click', toggleTorch);
+
+        // QR Code Reader Initiation
+        function startCamera() {
+            html5QrCode = new Html5Qrcode("qr-reader");
+            
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                // When scan succeeds
+                showNotification('success', `สแกน QR Code สำเร็จ: ${decodedText}`);
+                stopCamera();
+                manualInput.value = decodedText;
+                fetchDataFromSheet(decodedText);
+            };
+
+            const config = { 
+                fps: 15, 
+                qrbox: (width, height) => {
+                    return { width: width * 0.75, height: height * 0.75 };
+                },
+                aspectRatio: 1.0
+            };
+
+            // Start QR Code Scanning using back camera
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                qrCodeSuccessCallback
+            )
+            .then(() => {
+                startScanBtn.classList.add('hidden');
+                stopScanBtn.classList.remove('hidden');
+            })
+            .catch((err) => {
+                console.error("Camera access failed", err);
+                showNotification('error', 'ไม่สามารถเข้าถึงกล้องถ่ายภาพได้ กรุณาตรวจสอบสิทธิ์การใช้งานกล้อง');
+            });
+        }
+
+        function stopCamera() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    startScanBtn.classList.remove('hidden');
+                    stopScanBtn.classList.add('hidden');
+                    
+                    // Reset torch button visual
+                    isFlashOn = false;
+                    torchIcon.setAttribute('data-lucide', 'zap-off');
+                    torchBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center";
+                    lucide.createIcons();
+                }).catch((err) => {
+                    console.error("Error stopping camera", err);
+                });
+            }
+        }
+
+        startScanBtn.addEventListener('click', startCamera);
+        stopScanBtn.addEventListener('click', stopCamera);
+
+        // Fetch Data from Google Sheets App Script API
+        async function fetchDataFromSheet(qrCodeValue) {
+            if (!qrCodeValue.trim()) {
+                showNotification('error', 'กรุณาระบุรหัส QR Code');
+                return;
+            }
+
+            // UI adjustments
+            loader.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+            resetBtn.classList.remove('hidden');
+            
+            try {
+                // API Call with retry mechanism (exponential backoff)
+                const urlWithParams = `${SCRIPT_URL}?qr=${encodeURIComponent(qrCodeValue.trim())}`;
+                
+                let response = null;
+                let attempts = 5;
+                let delay = 1000;
+
+                for (let i = 0; i < attempts; i++) {
+                    try {
+                        response = await fetch(urlWithParams, {
+                            method: "GET",
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        });
+                        if (response.ok) break;
+                    } catch (e) {
+                        if (i === attempts - 1) throw e;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; // exponential delay
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error("Network response error during query.");
+                }
+
+                const data = await response.json();
+
+                loader.classList.add('hidden');
+
+                if (data.status === "success" && data.data && data.data.length > 0) {
+                    displayResults(qrCodeValue, data.data);
+                    showNotification('success', `ค้นพบข้อมูลประวัติทั้งหมด ${data.data.length} รายการ`);
+                } else {
+                    timelineContainer.innerHTML = '';
+                    showNotification('error', 'ไม่พบรหัส QR Code นี้ในคลังข้อมูลระบบ');
+                    // Reset summary UI
+                    resultSection.classList.remove('hidden');
+                    resultQrCode.textContent = qrCodeValue;
+                    resultCount.textContent = '0';
+                    timelineContainer.innerHTML = `
+                        <div class="bg-white rounded-2xl p-6 text-center border border-slate-100 space-y-2">
+                            <i data-lucide="search-code" class="w-12 h-12 text-slate-300 mx-auto"></i>
+                            <p class="text-sm font-semibold text-slate-600">ไม่มีข้อมูลบันทึกในประวัติ</p>
+                            <p class="text-xs text-slate-400">ตรวจสอบความถูกต้องของรหัสหรือทำการลงทะเบียนข้อมูลก่อนหน้าอีกครั้ง</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                }
+
+            } catch (err) {
+                loader.classList.add('hidden');
+                console.error("API error:", err);
+                showNotification('error', 'เกิดข้อผิดพลาดในการเชื่อมโยงเครือข่ายฐานข้อมูล กรุณาลองใหม่อีกครั้งในภายหลัง');
+            }
+        }
+
+        // Display results dynamically
+        function displayResults(qrCode, items) {
+            resultSection.classList.remove('hidden');
+            resultQrCode.textContent = qrCode;
+            resultCount.textContent = items.length;
+
+            timelineContainer.innerHTML = '';
+
+            items.forEach((item, index) => {
+                // Format friendly Date String if possible
+                let dateFormatted = item.date;
+                try {
+                    const parsedDate = new Date(item.date);
+                    if (!isNaN(parsedDate)) {
+                        dateFormatted = parsedDate.toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                } catch(e) {}
+
+                // Create Badge Color according to issue category
+                let badgeStyle = "bg-slate-100 text-slate-700";
+                const problemType = item.type ? item.type.toString().trim() : '';
+
+                if (problemType.includes('วิกฤต') || problemType.toLowerCase().includes('critical') || problemType.includes('สูง') || problemType.includes('เสีย')) {
+                    badgeStyle = "bg-rose-50 text-rose-700 border border-rose-100";
+                } else if (problemType.includes('ปกติ') || problemType.includes('สำเร็จ') || problemType.includes('สำเร็จรูป') || problemType.toLowerCase().includes('success') || problemType.toLowerCase().includes('done')) {
+                    badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100";
+                } else if (problemType.includes('ซ่อม') || problemType.includes('ดำเนินการ') || problemType.toLowerCase().includes('warning') || problemType.toLowerCase().includes('pending')) {
+                    badgeStyle = "bg-amber-50 text-amber-700 border border-amber-100";
+                } else if (problemType) {
+                    badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100";
+                }
+
+                const itemHtml = `
+                    <div class="relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 transition-transform hover:scale-[1.01]">
+                        <!-- Left indicator color bar -->
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${
+                            problemType.includes('วิกฤต') || problemType.includes('สูง') || problemType.includes('เสีย') ? 'bg-rose-500' :
+                            problemType.includes('ปกติ') || problemType.includes('สำเร็จ') ? 'bg-emerald-500' :
+                            problemType.includes('ซ่อม') || problemType.includes('ดำเนินการ') ? 'bg-amber-500' : 'bg-indigo-500'
+                        }"></div>
+                        
+                        <div class="flex items-start justify-between gap-2 pl-2">
+                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                ${dateFormatted}
+                            </span>
+                            ${problemType ? `
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeStyle}">
+                                    ${problemType}
+                                </span>
+                            ` : ''}
+                        </div>
+
+                        <div class="pl-2 space-y-1">
+                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">เนื้อหารายละเอียดข้อมูล</span>
+                            <p class="text-sm text-slate-700 font-medium whitespace-pre-line leading-relaxed">${item.content || '-'}</p>
+                        </div>
+                    </div>
+                `;
+                timelineContainer.insertAdjacentHTML('beforeend', itemHtml);
+            });
+
+            lucide.createIcons();
+            
+            // Scroll dynamically to result section
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Trigger search by manual keying
+        searchBtn.addEventListener('click', () => {
+            const val = manualInput.value;
+            fetchDataFromSheet(val);
         });
 
-        document.getElementById('manualBtn').addEventListener('click', () => {
-            const val = document.getElementById('manualInput').value;
-            if (val) { stopScanner(); showPopup(val); }
+        manualInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchDataFromSheet(manualInput.value);
+            }
         });
 
-        function showPopup(code) {
-            document.getElementById('popupQrCode').value = code;
-            document.getElementById('popupDate').valueAsDate = new Date();
-            document.getElementById('popup').classList.remove('hidden');
-        }
+        // Reset application state
+        resetBtn.addEventListener('click', () => {
+            manualInput.value = '';
+            resultSection.classList.add('hidden');
+            timelineContainer.innerHTML = '';
+            statusBox.style.display = 'none';
+            resetBtn.classList.add('hidden');
+            stopCamera();
+        });
 
-        function closePopup() {
-            document.getElementById('popup').classList.add('hidden');
-            location.reload(); // รีโหลดเพื่อเปิดกล้องใหม่
-        }
-
-        function saveData() {
-            alert("บันทึกข้อมูลเรียบร้อยแล้ว");
-            closePopup();
-        }
     </script>
 </body>
 </html>
-
-```

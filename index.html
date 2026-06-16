@@ -2,497 +2,968 @@
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ລະບົບກວດສອບຂໍ້ມູນ QR Code</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR Code Mobile Scanner & Reporter (Laos Fast Center)</title>
+    <!-- Tailwind CSS สำหรับการออกแบบอินเตอร์เฟสระดับแนวหน้า -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
+    <!-- Lucide Icons สำหรับไอคอนมาตรฐานสากล -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- HTML5-QRCode Library (for Camera Scanning) -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Html5-QRCode Library สำหรับการควบคุมกล้องที่เสถียรบนมือถือ -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap');
+        
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'Noto Sans Lao', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+            background-color: #0b0f19;
         }
-        /* ຊ່ອນຮູບພາບກ້ອງເລີ່ມຕົ້ນຂອງ html5-qrcode ເພື່ອຄວາມສວຍງາມ */
-        #qr-reader img {
-            display: none !important;
+
+        /* เอฟเฟกต์เบลอหลังแบบทันทีเมื่อเปิดป๊อปอัป */
+        #appContainer {
+            transition: filter 0.15s ease-out;
+            will-change: filter;
         }
-        #qr-reader div {
-            border: none !important;
+        
+        /* สแกนเนอร์ทรงสี่เหลี่ยมจัตุรัสและวิดีโอแบบเต็มกรอบ */
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 24px;
+        }
+        
+
+        /* อนิเมชันเส้นแสงเลเซอร์สีนีออนวิ่งขึ้นลงขณะสแกน */
+        .scan-laser {
+            position: absolute;
+            height: 3px;
+            width: 80%;
+            background: linear-gradient(to right, transparent, #6366f1, #818cf8, #6366f1, transparent);
+            box-shadow: 0 0 15px 4px rgba(99, 102, 241, 0.6);
+            left: 10%;
+            z-index: 10;
+            animation: laserSweep 3s infinite ease-in-out;
+            will-change: top;
+        }
+
+        @keyframes laserSweep {
+            0% { top: 15%; }
+            50% { top: 85%; }
+            100% { top: 15%; }
+        }
+
+        /* การเปิดตัวป๊อปอัปตรงกลางทันทีแบบไม่มี Slow */
+        .modal-active-instant {
+            display: flex !important;
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col max-w-md mx-auto shadow-2xl relative border-x border-slate-200">
+<body class="min-h-screen flex flex-col text-slate-800 antialiased">
 
-    <!-- Header Section -->
-    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 sticky top-0 z-50 shadow-md">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="bg-white/20 p-2 rounded-lg">
-                    <i data-lucide="qr-code" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold leading-none">QR Tracker</h1>
-                    <p class="text-xs text-blue-100 mt-1">ລະບົບຕິດຕາມປະຫວັດການເຄື່ອນໄຫວ</p>
-                </div>
-            </div>
-            <button id="reset-btn" class="text-white hover:bg-white/10 p-2 rounded-full transition-all hidden">
-                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Content Panel -->
-    <main class="flex-1 p-4 overflow-y-auto space-y-4 pb-20">
+    <!-- ส่วนเนื้อหาแอปหลักเพื่อทำการย่อจอเป็น 3D (App Container Wrapper) -->
+    <div id="appContainer" class="bg-slate-50 min-h-screen flex flex-col w-full relative z-10 origin-top">
         
-        <!-- Status Indicator / Messages -->
-        <div id="status-box" class="hidden p-3 rounded-xl text-sm flex items-center gap-2 transition-all">
-            <span id="status-icon"></span>
-            <span id="status-message"></span>
-        </div>
-
-        <!-- 1. Scanner Card -->
-        <div id="scanner-section" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-slate-700 flex items-center gap-2">
-                    <i data-lucide="camera" class="text-blue-500 w-5 h-5 animate-pulse"></i>
-                    ກ້ອງກຳລັງສະແກນອັດຕະໂນມັດ...
-                </h2>
-                <!-- Flashlight Button -->
-                <button id="torch-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center" title="ເປີດ/ປິດ ແຟຼຊ">
-                    <i data-lucide="zap-off" id="torch-icon" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- QR Camera Feed -->
-            <div class="relative overflow-hidden rounded-xl bg-slate-900 border border-slate-200 aspect-square flex items-center justify-center">
-                <div id="qr-reader" class="w-full h-full"></div>
-                <!-- Custom Scanner Overlay Grid -->
-                <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-12">
-                    <div class="flex justify-between">
-                        <div class="w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl"></div>
-                        <div class="w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr"></div>
-                    </div>
-                    <!-- Animated scanning line -->
-                    <div class="w-full h-0.5 bg-blue-500 opacity-70 shadow-lg animate-bounce"></div>
-                    <div class="flex justify-between">
-                        <div class="w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl"></div>
-                        <div class="w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br"></div>
-                    </div>
+        <!-- Header Section (ສ່ວນຫົວຂອງແອັບ) -->
+        <header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 text-white shadow-xl sticky top-0 z-30 px-4.5 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3 ml-5">
+                <div class="p-2 bg-white/15 rounded-2xl backdrop-blur-md border border-white/10 flex items-center justify-center">
+                    <i data-lucide="scan-face" class="w-5.5 h-5.5"></i>
                 </div>
-            </div>
-        </div>
-
-        <!-- Divider with Text -->
-        <div class="flex items-center my-2">
-            <hr class="flex-grow border-slate-200">
-            <span class="px-3 text-xs text-slate-400 uppercase font-bold tracking-wider">ຫຼື ລະບຸຂໍ້ມູນເອງ</span>
-            <hr class="flex-grow border-slate-200">
-        </div>
-
-        <!-- 2. Manual Input Form -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
-            <label for="manual-qr" class="block text-sm font-semibold text-slate-700">ລະຫັດ QR Code (ຖັນ B)</label>
-            <div class="flex gap-2">
-                <div class="relative flex-1">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="keyboard" class="text-slate-400 w-5 h-5"></i>
-                    </div>
-                    <input type="text" id="manual-qr" placeholder="ປ້ອນລະຫັດຄິວອາຣ໌ຢູ່ບ່ອນນີ້..." 
-                           class="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-slate-800 font-medium">
-                </div>
-                <button id="search-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 shadow-sm">
-                    <i data-lucide="search" class="w-4 h-4"></i>
-                    ຄົ້ນຫາ
-                </button>
-            </div>
-        </div>
-
-        <!-- Loading Spinner -->
-        <div id="loader" class="hidden flex-col items-center justify-center py-10 space-y-3">
-            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-sm text-slate-500 font-medium">ກຳລັງສືບຄົ້ນ ແລະ ດຶງຂໍ້ມູນຈາກລະບົບປະມວນຜົນ...</p>
-        </div>
-
-        <!-- 3. Result Section -->
-        <div id="result-section" class="hidden space-y-4">
-            
-            <!-- Result Summary Header -->
-            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between">
                 <div>
-                    <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">ຜົນຮັບການສະແກນລະຫັດ</span>
-                    <h3 id="result-qr-code" class="text-xl font-bold text-slate-800 mt-0.5">-</h3>
+                    <h1 class="font-bold text-base leading-tight tracking-wide">ລະບົບບັນທຶກ UPS</h1>
+                    <p class="text-[9px] text-indigo-200/80 font-medium">Power by: FM/IT</p>
                 </div>
-                <div class="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-center">
-                    <span class="block text-[10px] text-slate-400 font-bold uppercase leading-none">ພົບລາຍການ</span>
-                    <span id="result-count" class="text-lg font-extrabold text-indigo-700 leading-none">0</span>
+            </div>
+            <div class="flex items-center space-x-2 ">
+                <!-- Flashlight Toggle Button (ປຸ່ມເປີດ/ປິດ ໄຟແຟລດ) -->
+                <button id="btnFlashlight" class="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 transition-all duration-200 focus:outline-none relative border border-white/5 shadow-inner "  title="ເປີດ/ປິດ ໄຟແຟລດ">
+                    <i id="iconFlashlight" data-lucide="zap-off" class="w-5 h-5 text-amber-200"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area (ສ່ວນເນື້ອໃນຫຼັກ) -->
+        <main class="flex-1 p-4.5 max-w-md mx-auto w-full space-y-5 pb-28">
+            
+            <!-- Toast Notification System (ระบบแจ้งเตือนแบบด่วนทันทีบนหัวจอ) -->
+            <div id="toast" class="pointer-events-none fixed top-20 left-4 right-4 z-50
+bg-white/95 text-slate-800 p-4 rounded-3xl
+shadow-[0_10px_40px_rgba(0,0,0,0.12)]
+flex items-center justify-between
+transform transition-all duration-200 ease-out
+translate-y-[-10px] opacity-0
+border border-slate-200 backdrop-blur-xl">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-500/20 text-indigo-300 rounded-xl">
+                        <i id="toastIcon" data-lucide="info" class="w-4.5 h-4.5"></i>
+                    </div>
+                    <span id="toastMsg" class="text-xs font-semibold leading-relaxed">ຂໍ້ຄວາມແຈ້ງເຕືອນ</span>
+                </div>
+                <button onclick="hideToast()" class="pointer-events-auto p-1.5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Section 1: Perfect Square Camera Scanner Container (ກ້ອງສະແກນຈະຕຸລັດພ້ອມແສງເລເຊີ) -->
+            <div class="bg-white rounded-[32px] shadow-xl shadow-slate-100 border border-slate-100 overflow-hidden transition-all duration-300">
+                <div class="p-4  text-white flex justify-between items-center">
+                    <div class="flex items-center space-x-2.5 ml-5">
+                        <div class="relative flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 "></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                        </div>
+                        <span class="text-xs font-bold text-slate-900 tracking-wide">ກ້ອງສະແກນຄິວອາໂຄດ</span>
+                    </div>
+                    <!-- <span id="scanStatus" class="text-[9px] text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-800/60 font-bold tracking-wider">ກຳລັງເປີດກ້ອງ...</span> -->
+                </div>
+                
+                <!-- Camera Viewfinder 1:1 Aspect Ratio (ຈັຈຸລັດສົມບູນພ້ອມເອັບເຟັກຕ໌) -->
+                <div class="relative bg-black aspect-square w-full max-w-[360px] mx-auto flex items-center justify-center overflow-hidden rounded-2xl p-2.5">
+                    <div id="reader" class="w-full h-full rounded-2xl overflow-hidden relative z-0"></div>
+                    
+                    <!-- เส้นแสงกวาด Laser Scan -->
+                    <div class="scan-laser"></div>
+
+                    <!-- Target Corners -->
+                    <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-10 z-20">
+                        <div class="flex justify-between">
+                            <div class="w-10 h-10 border-t-[5px] border-l-[5px] border-indigo-500 rounded-tl-2xl"></div>
+                            <div class="w-10 h-10 border-t-[5px] border-r-[5px] border-indigo-500 rounded-tr-2xl"></div>
+                        </div>
+                        <div class="flex justify-between">
+                            <div class="w-10 h-10 border-b-[5px] border-l-[5px] border-indigo-500 rounded-bl-2xl"></div>
+                            <div class="w-10 h-10 border-b-[5px] border-r-[5px] border-indigo-500 rounded-br-2xl"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Camera Control Buttons -->
+                <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex justify-around">
+                    <button id="btnSwitchCamera" class="flex items-center space-x-2 text-xs text-slate-600 hover:text-indigo-600 font-bold px-4.5 py-2.5 rounded-2xl hover:bg-slate-100 active:scale-95 transition-all duration-150">
+                        <i data-lucide="switch-camera" class="w-4 h-4"></i>
+                        <span>ສະຫຼັບກ້ອງ</span>
+                    </button>
+                    <button id="btnRestartCamera" class="flex items-center space-x-2 text-xs text-slate-600 hover:text-indigo-600 font-bold px-4.5 py-2.5 rounded-2xl hover:bg-slate-100 active:scale-95 transition-all duration-150">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>ເລີ່ມກ້ອງໃໝ່</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- History Timeline -->
-            <div class="space-y-3">
-                <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 px-1">
-                    <i data-lucide="history" class="w-4 h-4"></i>
-                    ...ປະຫວັດ ແລະ ລາຍການເຄື່ອນໄຫວ
-                </h4>
-                
-                <!-- Container for Timeline Cards -->
-                <div id="timeline-container" class="space-y-3">
-                    <!-- Dynamic Items will be appended here -->
+            <!-- Section 2: Manual Input QR Code (ພິມລະຫັດເອງ) -->
+            <div class="bg-white p-5 rounded-[32px] shadow-xl shadow-slate-100 border border-slate-100 space-y-4">
+                <h3 class="text-xs font-bold text-slate-600 flex items-center gap-2">
+                    <i data-lucide="keyboard" class="w-4 h-4 text-indigo-500"></i>
+                    ພິມລະຫັດ QR Code
+                </h3>
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <input type="text" id="manualQrInput" placeholder="ກະລຸນາປ້ອນລະຫັດຢູ່ບ່ອນນີ້..." class="w-full pl-8 pr-10 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white text-sm font-semibold transition-all duration-150">
+                        <button id="clearManualInput" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 hidden">
+                            <i data-lucide="x-circle" class="w-4.5 h-4.5"></i>
+                        </button>
+                    </div>
+                    <button id="btnManualSubmit" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold px-6 rounded-2xl text-sm transition-all duration-150 shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-1.5">
+                        <span>ຕົກລົງ</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
                 </div>
+            </div>
+
+            <!-- Section 3: Navigation Grid (ປຸ່ມເມນູມາດຕະຖານ) -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- ปุ่มความเคลื่อนไหว -->
+                <button id="btnActionAnimation" class="bg-white p-5 rounded-[32px] shadow-xl shadow-slate-100/50 border border-slate-100 flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all duration-200 group relative overflow-hidden">
+                    <div class="p-3.5 bg-rose-50 text-rose-500 rounded-2xl group-hover:bg-rose-100/70 transition duration-200">
+                        <i data-lucide="activity" class="w-6 h-6 animate-pulse"></i>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-sm font-bold text-slate-700 block">GAI</span>
+                        <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">ປະຫວັດການເຄື່ອນໄຫວ</span>
+                    </div>
+                </button>
+
+                <!-- ปุ่มพิมพ์รายงาน -->
+                <button id="btnPrintReport" class="bg-white p-5 rounded-[32px] shadow-xl shadow-slate-100/50 border border-slate-100 flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all duration-200 group relative overflow-hidden">
+                    <div class="p-3.5 bg-amber-50 text-amber-600 rounded-2xl group-hover:bg-amber-100/70 transition duration-200">
+                        <i data-lucide="printer" class="w-6 h-6"></i>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-sm font-bold text-slate-700 block">ພີມລາຍງານ</span>
+                        <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">ດາວໂຫຼດ PDF/Excel</span>
+                    </div>
+                </button>
+
+                <!-- ปุ่มฐานข้อมูล -->
+                <button id="btnDatabase" class="bg-white p-5 rounded-[32px] shadow-xl shadow-slate-100/50 border border-slate-100 flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all duration-200 group relative overflow-hidden">
+                    <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-100/70 transition duration-200">
+                        <i data-lucide="database" class="w-6 h-6"></i>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-sm font-bold text-slate-700 block">ຖານຂໍ້ມູນ</span>
+                        <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">ກວດສອບຂໍ້ມູນໃນຊີດ</span>
+                    </div>
+                </button>
+
+                <!-- ปุ่มสร้าง QR code -->
+                <!-- <button id="btnCreateQr" class="bg-white p-5 rounded-[32px] shadow-xl shadow-slate-100/50 border border-slate-100 flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all duration-200 group relative overflow-hidden">
+                    <div class="p-3.5 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-100/70 transition duration-200">
+                        <i data-lucide="qr-code" class="w-6 h-6"></i>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-sm font-bold text-slate-700 block">ສ້າງ QR code</span>
+                        <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">Click here</span>
+                    </div>
+                </button>
+            </div> -->
+
+            <button
+    
+    onclick="window.open('https://your-url.com', '_blank')"
+    class="bg-white p-5 rounded-[32px] shadow-xl shadow-slate-100/50 border border-slate-100 flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all duration-200 group relative overflow-hidden">
+    
+    <div class="p-3.5 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-100/70 transition duration-200">
+        <i data-lucide="qr-code" class="w-6 h-6"></i>
+    </div>
+
+    <div class="text-center">
+        <span class="text-sm font-bold text-slate-700 block">ສ້າງ QR code</span>
+        <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">Click here</span>
+    </div>
+</button>
+
+        </main>
+
+        <!-- Footer Credit -->
+        <footer class="bg-slate-100/50 text-slate-400 py-6 text-center text-[10px] mt-auto border-t border-slate-200/60">
+            <p class="font-semibold text-slate-500">© 2026 ລະບົບ QR Smart Report.</p>
+            <p class="mt-1.5 font-mono text-[9px] bg-slate-200/50 text-slate-500 inline-block px-3 py-1 rounded-full">Facility Maintenance Department | IT</p>
+        </footer>
+
+    </div>
+
+    <!-- ----------------- INSTANT POPUP / BOTTOM SHEET ----------------- -->
+    <!-- ปรับรูปแบบให้ซ่อน/แสดง ทันที (instant) และปรับตำแหน่งตรงกลางจอเป็นหลัก -->
+    <div id="popupModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+        
+        <!-- ม่านพื้นหลังเบลอระดับพรีเมียม เปิดทันที (ไม่มีทรานซิชันช้า) -->
+        <div class="absolute inset-0 z-0 bg-[#060a14]/65 backdrop-blur-md" id="modalBackdrop"></div>
+        
+        <!-- แผ่นกล่องแบบฟอร์มบันทึกข้อมูลกึ่งกลางหน้าจอ -->
+        <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl z-10 flex flex-col max-h-[90vh] border border-slate-100" id="modalContainer">
+            
+            <!-- ส่วนหัวป๊อปอัป -->
+            <div class="px-6 py-5 border-b border-slate-50 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
+                        <i data-lucide="file-spreadsheet" class="w-5.5 h-5.5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-base leading-snug">ບັນທຶກຂໍ້ມູນ QR</h2>
+                        <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Power by: FM/IT</p>
+                    </div>
+                </div>
+                <button id="btnCloseModalHeader" type="button" class="p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-700 transition duration-150 active:scale-90">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- ส่วนกรอกรายละเอียดรายงาน -->
+            <form id="reportForm" class="p-6 space-y-5 overflow-y-auto flex-1 scrollbar-none" onsubmit="return false;">
+                
+                <!-- ช่องรหัสคิวอาร์ (Read-Only) -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i data-lucide="hash" class="w-3.5 h-3.5"></i>
+                        ລະຫັດຄິວອາ 
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="modalQrCode" readonly class="w-full pl-4 pr-24 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600 font-mono font-bold focus:outline-none cursor-not-allowed">
+                        <!-- <span class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-xl text-[9px] font-bold tracking-wide">ດຶງຂໍ້ມູນແລ້ວ</span> -->
+                    </div>
+                </div>
+
+                <!-- ช่องเลือกวันที่ -->
+                <div>
+                    <label for="modalDate" class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                        ວັນທີ
+                    </label>
+                    <input type="date" id="modalDate" required class="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-150">
+                </div>
+
+                <!-- ช่องสลับกลุ่มสถานะด้วย Radio Card (เริ่มต้นที่ ບັນຫາ) -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                        ສະຖານະ
+                    </label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <!-- สถานะ: มีปัญหา (ปัญหา - Default) -->
+                        <label class="relative flex items-center justify-center p-3.5 rounded-2xl border border-rose-200 bg-rose-50/50 cursor-pointer text-center hover:bg-rose-50 transition-all duration-200" id="lblStatusProblem">
+                            <input type="radio" name="status" value="ບັນຫາ" checked class="sr-only" id="radioProblem">
+                            <div class="flex flex-col items-center gap-1.5 text-rose-700">
+                                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                                <span class="text-xs font-bold">ບັນຫາ</span>
+                            </div>
+                        </label>
+                        <!-- สถานะ: พัง -->
+                        <label class="relative flex items-center justify-center p-3.5 rounded-2xl border border-slate-200 bg-white cursor-pointer text-center hover:bg-slate-50 transition-all duration-200" id="lblStatusBroken">
+                            <input type="radio" name="status" value="ເພ້" class="sr-only" id="radioBroken">
+                            <div class="flex flex-col items-center gap-1.5 text-slate-500">
+                                <i data-lucide="flame" class="w-5 h-5"></i>
+                                <span class="text-xs font-bold">ເພ້</span>
+                            </div>
+                        </label>
+                        <!-- สถานะ: สำเร็จ -->
+                        <label class="relative flex items-center justify-center p-3.5 rounded-2xl border border-slate-200 bg-white cursor-pointer text-center hover:bg-slate-50 transition-all duration-200" id="lblStatusSuccess">
+                            <input type="radio" name="status" value="ສຳເລັດ" class="sr-only" id="radioSuccess">
+                            <div class="flex flex-col items-center gap-1.5 text-slate-500">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                <span class="text-xs font-bold">ສຳເລັດ</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ช่องกรอกรายละเอียดความยาวสูง -->
+                <div>
+                    <label for="modalDetails" class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i data-lucide="text-quote" class="w-3.5 h-3.5"></i>
+                        ເນື້ອໃນ ແລະ ລາຍລະອຽດ
+                    </label>
+                    <textarea id="modalDetails" rows="4" required placeholder="ກະລຸນາລະບຸລາຍລະອຽດເພີ່ມເຕີມ ແລະ ເນື້ອໃນຢູ່ບ່ອນນີ້..." class="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-150"></textarea>
+                </div>
+
+            </form>
+
+            <!-- ส่วนท้ายป๊อปอัป -->
+            <div class="bg-slate-50 px-6 py-.5 border-t border-slate-100 flex items-center justify-end space-x-3 flex-shrink-0 rounded-b-[32px]">
+                <button type="button" id="btnCancelModal" class="px-5 py-3.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150">
+                    ປິດ
+                </button>
+                <button type="button" id="btnSaveData" class="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all duration-150 flex items-center gap-2 shadow-lg shadow-indigo-600/15">
+                    <span id="saveBtnText">ບັນທຶກຂໍ້ມູນ</span>
+                    <i data-lucide="save" class="w-4.5 h-4.5"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ----------------- INTERACTIVE SUB-MODALS (FAST SHOWN) ----------------- -->
+    
+    <!-- SUB-MODAL 1: การเคลื่อนไหว -->
+    <div id="motionModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/40" onclick="closeSubModal('motionModal')"></div>
+        <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl p-6 space-y-4 z-10">
+            <div class="flex items-center justify-between border-b pb-3.5">
+                <div class="flex items-center gap-2 text-rose-500">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <h3 class="font-bold text-slate-800">ການເຄື່ອນໄຫວ ແລະ ສະຖິຕິ</h3>
+                </div>
+                <button onclick="closeSubModal('motionModal')" class="p-1.5 rounded-full hover:bg-slate-50 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3.5 max-h-60 overflow-y-auto pr-1">
+                <p class="text-xs text-slate-500 leading-relaxed">ບັນທຶກສະຖິຕິການກວດສອບ ແລະ ປະຫວັດການເຮັດວຽກຂອງລະບົບ:</p>
+                <div class="border-l-2 border-indigo-500 pl-3.5 space-y-3">
+                    <div class="text-xs">
+                        <span class="text-slate-400 font-mono">16:20</span> - <span class="font-bold text-slate-700">ເປີດລະບົບກ້ອງສຳເລັດ</span>
+                    </div>
+                    <div class="text-xs">
+                        <span class="text-slate-400 font-mono">15:30</span> - ສະແກນ QR Code (ID: QR-88902) ສະຖານະ: ສຳເລັດ
+                    </div>
+                    <div class="text-xs">
+                        <span class="text-slate-400 font-mono">14:15</span> - ພົບລາຍງານຂໍ້ບົກຜ່ອງ (ID: QR-10041) ສະຖານະ: ບັນຫາ
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeSubModal('motionModal')" class="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition active:scale-95">ປິດ</button>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL 2: พิมพ์รายงาน -->
+    <div id="reportModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/40" onclick="closeSubModal('reportModal')"></div>
+        <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl p-6 space-y-4.5 z-10">
+            <div class="flex items-center justify-between border-b pb-3.5">
+                <div class="flex items-center gap-2 text-amber-500">
+                    <i data-lucide="printer" class="w-5 h-5"></i>
+                    <h3 class="font-bold text-slate-800">ດາວໂຫຼດລາຍງານ</h3>
+                </div>
+                <button onclick="closeSubModal('reportModal')" class="p-1.5 rounded-full hover:bg-slate-50 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-2">
+                <p class="text-xs text-slate-500 leading-relaxed">ສົ່ງອອກໄຟລ໌ລາຍງານສະຫຼຸບຜົນຂອງການສະແກນ:</p>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button onclick="simulateDownload('PDF')" class="p-4.5 border border-slate-100 hover:border-indigo-500 hover:bg-indigo-50/20 rounded-2xl flex flex-col items-center gap-2.5 transition active:scale-95 shadow-sm">
+                        <i data-lucide="file-text" class="w-8 h-8 text-rose-500"></i>
+                        <span class="text-xs font-bold text-slate-700">ລາຍງານ PDF</span>
+                    </button>
+                    <button onclick="simulateDownload('Excel')" class="p-4.5 border border-slate-100 hover:border-indigo-500 hover:bg-indigo-50/20 rounded-2xl flex flex-col items-center gap-2.5 transition active:scale-95 shadow-sm">
+                        <i data-lucide="file-spreadsheet" class="w-8 h-8 text-emerald-500"></i>
+                        <span class="text-xs font-bold text-slate-700">ຕາຕະລາງ Excel</span>
+                    </button>
+                </div>
+            </div>
+            <button onclick="closeSubModal('reportModal')" class="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition active:scale-95">ປິດ</button>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL 3: ฐานข้อมูลชีต -->
+    <div id="dbModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/40" onclick="closeSubModal('dbModal')"></div>
+        <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl p-5 space-y-4 z-10 flex flex-col max-h-[82vh]">
+            <div class="flex items-center justify-between border-b pb-3.5 flex-shrink-0">
+                <div class="flex items-center gap-2 text-emerald-600">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                    <h3 class="font-bold text-slate-800">ຖານຂໍ້ມູນຫຼ້າສຸດ (Google Sheets)</h3>
+                </div>
+                <button onclick="closeSubModal('dbModal')" class="p-1.5 rounded-full hover:bg-slate-50 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="text-[11px] text-slate-500 flex justify-between items-center flex-shrink-0">
+                <span class="font-medium">ປະຫວັດລາຍການຂໍ້ມູນຫຼ້າສຸດໃນລະບົບ</span>
+                <button id="btnFetchRecent" class="text-indigo-600 hover:underline font-bold flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> ດຶງໃໝ່
+                </button>
+            </div>
+            <div class="overflow-y-auto flex-1 space-y-2.5 max-h-80 pr-1 scrollbar-none" id="dbRecordsContainer">
+                <div class="text-center py-6 text-slate-400 text-xs">
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500"></i>
+                    ກຳລັງໂຫຼດຂໍ້ມູນ...
+                </div>
+            </div>
+            <div class="flex-shrink-0 pt-2.5 border-t flex gap-2">
+                <a href="https://docs.google.com/spreadsheets/d/1Odn3pvx5_sBDpnhL6CpNHQKeEEKrW6NqYShxEg7DTQQ/edit" target="_blank" class="flex-1 py-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    ເປີດ Google Sheets
+                </a>
+                <button onclick="closeSubModal('dbModal')" class="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition active:scale-95">ປິດ</button>
             </div>
         </div>
+    </div>
 
-    </main>
+    <!-- SUB-MODAL 4: สร้าง QR Code -->
+    <div id="createQrModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/40" onclick="closeSubModal('createQrModal')"></div>
+        <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl p-6 space-y-4 z-10">
+            <div class="flex items-center justify-between border-b pb-3.5">
+                <div class="flex items-center gap-2 text-indigo-600">
+                    <i data-lucide="qr-code" class="w-5 h-5"></i>
+                    <h3 class="font-bold text-slate-800">เครื่องสร้าง QR Code</h3>
+                </div>
+                <button onclick="closeSubModal('createQrModal')" class="p-1.5 rounded-full hover:bg-slate-50 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3.5">
+                <p class="text-xs text-slate-500 leading-relaxed">ປ້ອນຂໍ້ມູນເພື່ອສ້າງຮູບພາບ QR Code ໃຊ້ໃນການທົດລອງ:</p>
+                <input type="text" id="qrTextGen" placeholder="ຕົວຢ່າງ: QR-9999" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/10">
+                <button onclick="generateQRImage()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold transition active:scale-95 shadow-md shadow-indigo-600/15">ສ້າງຄິວອາໂຄດ</button>
+                <div id="qrResultContainer" class="hidden flex flex-col items-center justify-center py-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <div id="qrImageWrapper" class="bg-white p-3.5 rounded-2xl shadow-md border border-slate-100"></div>
+                    <span class="text-xs text-slate-400 mt-2.5 font-mono font-bold" id="qrResultLabel"></span>
+                </div>
+            </div>
+            <button onclick="closeSubModal('createQrModal')" class="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition active:scale-95">ປິດ</button>
+        </div>
+    </div>
 
-    <!-- Footer Credit / Copyright Info -->
-    <footer class="absolute bottom-0 inset-x-0 bg-white border-t border-slate-100 p-3 text-center text-[11px] text-slate-400">
-        ເຊື່ອມໂຍງຂໍ້ມູນກັບຖານຂໍ້ມູນ Cloud Sheets ສຳເລັດ
-    </footer>
-
-    <!-- Script Section -->
+    <!-- JavaScript LOGIC -->
     <script>
-        // Web App URLs
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT4F5NhaQhz-_nBEeTOynlj-L5coiVfUvQ4dqxyc5lk8N24471paZGQPBz-EFU9klMqA/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxT4F5NhaQhz-_nBEeTOynlj-L5coiVfUvQ4dqxyc5lk8N24471paZGQPBz-EFU9klMqA/exec";
+        const SPREADSHEET_ID = "1Odn3pvx5_sBDpnhL6CpNHQKeEEKrW6NqYShxEg7DTQQ";
 
-        // Global State & UI Elements
         let html5QrCode = null;
         let isFlashOn = false;
-        
-        // Cooldown control variables to prevent continuous rapid scanning of the same QR code
-        let lastScannedText = "";
-        let lastScanTime = 0;
-        const SCAN_COOLDOWN = 3000; // 3 seconds cooldown between identical scans
+        let activeCameraId = null;
+        let camerasList = [];
+        let currentCameraIndex = 0;
 
-        const torchBtn = document.getElementById('torch-btn');
-        const torchIcon = document.getElementById('torch-icon');
-        const manualInput = document.getElementById('manual-qr');
-        const searchBtn = document.getElementById('search-btn');
-        const loader = document.getElementById('loader');
-        const resultSection = document.getElementById('result-section');
-        const timelineContainer = document.getElementById('timeline-container');
-        const resultQrCode = document.getElementById('result-qr-code');
-        const resultCount = document.getElementById('result-count');
-        const statusBox = document.getElementById('status-box');
-        const statusIcon = document.getElementById('status-icon');
-        const statusMessage = document.getElementById('status-message');
-        const resetBtn = document.getElementById('reset-btn');
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Utility: Show Alert Messages in App
-        function showNotification(type, message) {
-            statusBox.className = "p-3 rounded-xl text-sm flex items-center gap-2 transition-all ";
-            let iconMarkup = '';
-
-            if (type === 'success') {
-                statusBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-100');
-                iconMarkup = '<i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>';
-            } else if (type === 'error') {
-                statusBox.classList.add('bg-rose-50', 'text-rose-800', 'border', 'border-rose-100');
-                iconMarkup = '<i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i>';
-            } else {
-                statusBox.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-100');
-                iconMarkup = '<i data-lucide="info" class="w-5 h-5 text-blue-600"></i>';
-            }
-
-            statusBox.style.display = 'flex';
-            statusIcon.innerHTML = iconMarkup;
-            statusMessage.textContent = message;
+        document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
+            setDefaultDate();
+            initScanner();
+            setupRadioButtons();
+            
+            const manualInput = document.getElementById("manualQrInput");
+            const clearBtn = document.getElementById("clearManualInput");
+            manualInput.addEventListener("input", () => {
+                clearBtn.style.display = manualInput.value ? "block" : "none";
+            });
+            clearBtn.addEventListener("click", () => {
+                manualInput.value = "";
+                clearBtn.style.display = "none";
+            });
+        });
 
-            // Auto dismiss after 5 seconds
-            setTimeout(() => {
-                statusBox.style.display = 'none';
-            }, 5000);
+        // จัดเวลาปัจจุบันใส่กล่องวันที่
+        function setDefaultDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById("modalDate").value = `${year}-${month}-${day}`;
         }
 
-        // Updated Camera Flashlight Toggle Functionality
-        async function toggleTorch() {
-            if (!html5QrCode) return;
-            
-            try {
-                const scannerState = html5QrCode.getState();
-                // Check if scanner is running (SCANNING = 2)
-                if (scannerState !== 2) {
-                    showNotification('info', 'ກຳລັງເປີດໃຊ້ງານກ້ອງສະແກນເນີ ກະລຸນາລໍຖ້າຈັກໜ້ອຍກ່ອນເປີດແຟຼຊ');
-                    return;
-                }
+        // จัดการ UI สำหรับกล่องปุ่มควบคุมสถานะแบบ iOS Segmented-Control / Card
+        function setupRadioButtons() {
+            const radioProblem = document.getElementById("radioProblem");
+            const radioBroken = document.getElementById("radioBroken");
+            const radioSuccess = document.getElementById("radioSuccess");
 
-                // 1. Try native method from html5-qrcode library (Best practice)
-                let torchSupported = false;
-                try {
-                    torchSupported = await html5QrCode.isTorchSupported();
-                } catch (e) {
-                    console.log("Native torch check not supported, falling back to track capabilities.");
-                }
+            const lblProblem = document.getElementById("lblStatusProblem");
+            const lblBroken = document.getElementById("lblStatusBroken");
+            const lblSuccess = document.getElementById("lblStatusSuccess");
 
-                if (torchSupported) {
-                    isFlashOn = !isFlashOn;
-                    await html5QrCode.setTorchState(isFlashOn);
-                    updateTorchUI(isFlashOn);
-                } else {
-                    // 2. Fallback: Manually apply constraints to the running video track
-                    const stream = html5QrCode.getRunningTrack();
-                    if (stream) {
-                        const capabilities = stream.getCapabilities();
-                        if (capabilities && capabilities.torch) {
-                            isFlashOn = !isFlashOn;
-                            await stream.applyConstraints({
-                                advanced: [{ torch: isFlashOn }]
-                            });
-                            updateTorchUI(isFlashOn);
-                        } else {
-                            showNotification('error', 'ອຸປະກອນຂອງທ່ານບໍ່ຮອງຮັບແຟຼຊ ຫຼື ບຣາວເຊີບໍ່ໄດ້ຮັບອະນຸຍາດໃຫ້ເຂົ້າເຖິງແຟຼຊ');
-                        }
-                    } else {
-                        showNotification('error', 'ບໍ່ພົບກ້ອງທີ່ກຳລັງເຮັດວຽກຢູ່ເພື່ອເປີດແຟຼຊ');
+            function updateRadioStyles() {
+                lblProblem.className = "relative flex items-center justify-center p-3.5 rounded-2xl border border-slate-100 bg-white cursor-pointer text-center hover:bg-slate-50 transition duration-150";
+                lblBroken.className = "relative flex items-center justify-center p-3.5 rounded-2xl border border-slate-100 bg-white cursor-pointer text-center hover:bg-slate-50 transition duration-150";
+                lblSuccess.className = "relative flex items-center justify-center p-3.5 rounded-2xl border border-slate-100 bg-white cursor-pointer text-center hover:bg-slate-50 transition duration-150";
+
+                lblProblem.querySelector('div').className = "flex flex-col items-center gap-1.5 text-slate-400";
+                lblBroken.querySelector('div').className = "flex flex-col items-center gap-1.5 text-slate-400";
+                lblSuccess.querySelector('div').className = "flex flex-col items-center gap-1.5 text-slate-400";
+
+                if (radioProblem.checked) {
+                    lblProblem.className = "relative flex items-center justify-center p-3.5 rounded-2xl border-rose-200 bg-rose-50/70 cursor-pointer text-center hover:bg-rose-50 transition duration-150 shadow-md shadow-rose-100/50";
+                    lblProblem.querySelector('div').className = "flex flex-col items-center gap-1.5 text-rose-700 font-bold";
+                } else if (radioBroken.checked) {
+                    lblBroken.className = "relative flex items-center justify-center p-3.5 rounded-2xl border-slate-300 bg-slate-100 cursor-pointer text-center hover:bg-slate-50 transition duration-150 shadow-md shadow-slate-200/50";
+                    lblBroken.querySelector('div').className = "flex flex-col items-center gap-1.5 text-slate-800 font-bold";
+                } else if (radioSuccess.checked) {
+                    lblSuccess.className = "relative flex items-center justify-center p-3.5 rounded-2xl border-emerald-200 bg-emerald-50/70 cursor-pointer text-center hover:bg-emerald-50 transition duration-150 shadow-md shadow-emerald-100/50";
+                    lblSuccess.querySelector('div').className = "flex flex-col items-center gap-1.5 text-emerald-700 font-bold";
+                }
+            }
+
+            radioProblem.addEventListener("change", updateRadioStyles);
+            radioBroken.addEventListener("change", updateRadioStyles);
+            radioSuccess.addEventListener("change", updateRadioStyles);
+        }
+
+        // เริ่มต้นใช้งานกล้องหลังเป็นหลัก
+        function initScanner() {
+            const scanStatus = document.getElementById("scanStatus");
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length > 0) {
+                    camerasList = devices;
+                    let backCam = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment'));
+                    if (backCam) {
+                        currentCameraIndex = devices.indexOf(backCam);
                     }
+                    startScanningWithId(devices[currentCameraIndex].id);
+                } else {
+                    scanStatus.innerText = "ບໍ່ພົບກ້ອງອຸປະກອນ";
+                    scanStatus.className = "text-[10px] text-rose-300 bg-rose-950 px-2.5 py-0.5 rounded-full border border-rose-800 font-bold";
+                    showToast("ບໍ່ພົບກ້ອງໃນໂທລະສັບມືຖືເຄື່ອງນີ້", "alert-triangle");
                 }
-            } catch (err) {
-                console.error("Torch error:", err);
-                showNotification('error', 'ບໍ່ສາມາດປັບໃຊ້ສະຖານະແຟຼຊໄລທ໌ໄດ້ໃນຂະນະນີ້');
-            }
-        }
-
-        // Update Flashlight Button Interface
-        function updateTorchUI(on) {
-            if (on) {
-                torchIcon.setAttribute('data-lucide', 'zap');
-                torchBtn.className = "bg-amber-400 hover:bg-amber-500 text-white p-2 rounded-full transition-colors flex items-center justify-center";
-            } else {
-                torchIcon.setAttribute('data-lucide', 'zap-off');
-                torchBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-full transition-colors flex items-center justify-center";
-            }
-            lucide.createIcons();
-        }
-
-        torchBtn.addEventListener('click', toggleTorch);
-
-        // QR Code Reader Initiation (Runs automatically on load)
-        function startCameraAuto() {
-            html5QrCode = new Html5Qrcode("qr-reader");
-            
-            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                const now = Date.now();
-                
-                // If it is the same code scanned within 3 seconds, ignore to avoid spamming searches
-                if (decodedText === lastScannedText && (now - lastScanTime) < SCAN_COOLDOWN) {
-                    return;
-                }
-
-                lastScannedText = decodedText;
-                lastScanTime = now;
-
-                // When scan succeeds, play a subtle success vibration if supported
-                if (navigator.vibrate) {
-                    navigator.vibrate(100);
-                }
-
-                showNotification('success', `ສະແກນ QR Code ສຳເລັດ: ${decodedText}`);
-                manualInput.value = decodedText;
-                fetchDataFromSheet(decodedText);
-            };
-
-            const config = { 
-                fps: 15, 
-                qrbox: (width, height) => {
-                    return { width: width * 0.75, height: height * 0.75 };
-                },
-                aspectRatio: 1.0
-            };
-
-            // Start QR Code Scanning using back camera automatically
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
-                qrCodeSuccessCallback
-            )
-            .catch((err) => {
-                console.error("Camera access failed", err);
-                showNotification('error', 'ບໍ່ສາມາດເຂົ້າເຖິງກ້ອງຖ່າຍຮູບໄດ້ອັດຕະໂນມັດ ກະລຸນາກວດສອບສິດການໃຊ້ງານກ້ອງ ຫຼື ກົດຣີເຟຣຊ໌ໜ້າເວັບ');
+            }).catch(err => {
+                scanStatus.innerText = "ປະຕິເສດການເຂົ້າເຖິງກ້ອງ";
+                scanStatus.className = "text-[10px] text-rose-300 bg-rose-950 px-2.5 py-0.5 rounded-full border border-rose-800 font-bold";
+                showToast("ບໍ່ສາມາດເຂົ້າເຖິງກ້ອງໄດ້ ກະລຸນາອະນຸຍາດສິດກ້ອງ", "alert-triangle");
             });
         }
 
-        // Fetch Data from Google Sheets App Script API
-        async function fetchDataFromSheet(qrCodeValue) {
-            if (!qrCodeValue.trim()) {
-                showNotification('error', 'ກະລຸນາລະບຸລະຫັດ QR Code');
+        function startScanningWithId(cameraId) {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    launchScannerInstance(cameraId);
+                }).catch(err => {
+                    launchScannerInstance(cameraId);
+                });
+            } else {
+                launchScannerInstance(cameraId);
+            }
+        }
+
+        function launchScannerInstance(cameraId) {
+            const scanStatus = document.getElementById("scanStatus");
+            html5QrCode = new Html5Qrcode("reader");
+            activeCameraId = cameraId;
+            
+            html5QrCode.start(
+                cameraId, 
+                {
+                    fps: 15,
+                    qrbox: (width, height) => {
+                        const size = Math.floor(Math.min(width, height) * 0.72);
+                        return { width: size, height: size };
+                    }
+                },
+                (decodedText) => {
+                    handleScanSuccess(decodedText);
+                },
+                () => {}
+            ).then(() => {
+                scanStatus.innerText = "ກຳລັງຊອກຫາ QR Code...";
+                scanStatus.className = "text-[10px] text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-800/80 font-bold";
+            }).catch(err => {
+                scanStatus.innerText = "ເກີດຂໍ້ຜິດພາດໃນການເປີດກ້ອງ";
+                scanStatus.className = "text-[10px] text-rose-300 bg-rose-950 px-2.5 py-0.5 rounded-full border border-rose-800 font-bold";
+            });
+        }
+
+        // เมื่อกล้องอ่านค่าได้สำเร็จ
+        function handleScanSuccess(qrText) {
+            turnOffFlashlight();
+
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+
+            document.getElementById("modalQrCode").value = qrText;
+            document.getElementById("radioProblem").checked = true;
+            document.getElementById("radioProblem").dispatchEvent(new Event('change'));
+            document.getElementById("modalDetails").value = "";
+            setDefaultDate();
+
+            // เปิดป๊อปอัปด่วนตรงกลางจอ
+            openModal();
+            showToast("ສະແກນ QR Code ສຳເລັດ", "check");
+        }
+
+        // ปุ่มควบคุมระบบไฟส่องสว่างกล้องหน้าหลัง
+        document.getElementById("btnFlashlight").addEventListener("click", () => {
+            toggleFlashlight();
+        });
+
+        function toggleFlashlight() {
+            if (!html5QrCode) {
+                showToast("ກ້ອງຍັງບໍ່ທັນພ້ອມໃຊ້ງານ", "alert-triangle");
                 return;
             }
 
-            // UI adjustments
-            loader.classList.remove('hidden');
-            resultSection.classList.add('hidden');
-            resetBtn.classList.remove('hidden');
-            
             try {
-                // API Call with retry mechanism (exponential backoff)
-                const urlWithParams = `${SCRIPT_URL}?qr=${encodeURIComponent(qrCodeValue.trim())}`;
-                
-                let response = null;
-                let attempts = 5;
-                let delay = 1000;
-
-                for (let i = 0; i < attempts; i++) {
-                    try {
-                        response = await fetch(urlWithParams, {
-                            method: "GET",
-                            headers: {
-                                "Accept": "application/json"
-                            }
-                        });
-                        if (response.ok) break;
-                    } catch (e) {
-                        if (i === attempts - 1) throw e;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2; // exponential delay
-                    }
-                }
-
-                if (!response || !response.ok) {
-                    throw new Error("Network response error during query.");
-                }
-
-                const data = await response.json();
-
-                loader.classList.add('hidden');
-
-                if (data.status === "success" && data.data && data.data.length > 0) {
-                    displayResults(qrCodeValue, data.data);
-                    showNotification('success', `ຄົ້ນພົບຂໍ້ມູນປະຫວັດທັງໝົດ ${data.data.length} ລາຍການ`);
-                } else {
-                    timelineContainer.innerHTML = '';
-                    showNotification('error', 'ບໍ່ພົບລະຫັດ QR Code ນີ້ໃນຄັງຂໍ້ມູນລະບົບ');
-                    // Reset summary UI
-                    resultSection.classList.remove('hidden');
-                    resultQrCode.textContent = qrCodeValue;
-                    resultCount.textContent = '0';
-                    timelineContainer.innerHTML = `
-                        <div class="bg-white rounded-2xl p-6 text-center border border-slate-100 space-y-2">
-                            <i data-lucide="search-code" class="w-12 h-12 text-slate-300 mx-auto"></i>
-                            <p class="text-sm font-semibold text-slate-600">ບໍ່ມີຂໍ້ມູນບັນທຶກໃນປະຫວັດ</p>
-                            <p class="text-xs text-slate-400">ກວດສອບຄວາມຖືກຕ້ອງຂອງລະຫັດ ຫຼື ເຮັດການລົງທະບຽນຂໍ້ມູນກ່ອນໜ້ານີ້ອີກຄັ້ງ</p>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                }
-
+                const state = !isFlashOn;
+                html5QrCode.applyVideoConstraints({
+                    advanced: [{ torch: state }]
+                }).then(() => {
+                    isFlashOn = state;
+                    updateFlashlightIcon();
+                    showToast(isFlashOn ? "ເປີດໄຟແຟລດແລ້ວ" : "ປິດໄຟແຟລດແລ້ວ", "zap");
+                }).catch(err => {
+                    showToast("ອຸປະກອນບໍ່ຮອງຮັບໄຟແຟລດເທິງເວັບ", "alert-triangle");
+                });
             } catch (err) {
-                loader.classList.add('hidden');
-                console.error("API error:", err);
-                showNotification('error', 'ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມໂຍງເຄືອຂ່າຍຖານຂໍ້ມູນ ກະລຸນາລອງໃໝ່ອີກຄັ້ງໃນພາຍຫຼັງ');
+                showToast("ເກີດຂໍ້ຜິດພາດໃນການຄວບຄຸມໄຟແຟລດ", "alert-triangle");
             }
         }
 
-        // Display results dynamically
-        function displayResults(qrCode, items) {
-            resultSection.classList.remove('hidden');
-            resultQrCode.textContent = qrCode;
-            resultCount.textContent = items.length;
-
-            timelineContainer.innerHTML = '';
-
-            items.forEach((item, index) => {
-                // Format friendly Date String (using lo-LA locale for Lao formatting)
-                let dateFormatted = item.date;
+        function turnOffFlashlight() {
+            if (isFlashOn && html5QrCode) {
                 try {
-                    const parsedDate = new Date(item.date);
-                    if (!isNaN(parsedDate)) {
-                        dateFormatted = parsedDate.toLocaleDateString('lo-LA', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-                } catch(e) {}
+                    html5QrCode.applyVideoConstraints({
+                        advanced: [{ torch: false }]
+                    }).then(() => {
+                        isFlashOn = false;
+                        updateFlashlightIcon();
+                    }).catch(err => {});
+                } catch (e) {}
+            }
+        }
 
-                // Create Badge Color according to issue category
-                let badgeStyle = "bg-slate-100 text-slate-700";
-                const problemType = item.type ? item.type.toString().trim() : '';
+        function updateFlashlightIcon() {
+            const btn = document.getElementById("btnFlashlight");
+            const icon = document.getElementById("iconFlashlight");
+            if (isFlashOn) {
+                btn.className = "p-2.5 rounded-full bg-amber-500 text-slate-900 transition duration-200 focus:outline-none shadow-lg shadow-amber-500/40 border border-amber-300";
+                icon.setAttribute("data-lucide", "zap");
+            } else {
+                btn.className = "p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition duration-200 focus:outline-none relative border border-white/5";
+                icon.setAttribute("data-lucide", "zap-off");
+            }
+            lucide.createIcons();
+        }
 
-                if (problemType.includes('ວິກິດ') || problemType.toLowerCase().includes('critical') || problemType.includes('ສູງ') || problemType.includes('ເສຍ')) {
-                    badgeStyle = "bg-rose-50 text-rose-700 border border-rose-100";
-                } else if (problemType.includes('ປົກກະຕິ') || problemType.includes('ສຳເລັດ') || problemType.includes('ສຳເລັດຮູບ') || problemType.toLowerCase().includes('success') || problemType.toLowerCase().includes('done')) {
-                    badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100";
-                } else if (problemType.includes('ສ້ອມ') || problemType.includes('ດຳເນີນການ') || problemType.toLowerCase().includes('warning') || problemType.toLowerCase().includes('pending')) {
-                    badgeStyle = "bg-amber-50 text-amber-700 border border-amber-100";
-                } else if (problemType) {
-                    badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100";
+        // ปุ่มสลับกล้องถ่ายภาพทำงาน
+        document.getElementById("btnSwitchCamera").addEventListener("click", () => {
+            if (camerasList.length <= 1) {
+                showToast("ບໍ່ມີກ້ອງອື່ນໃຫ້ສະຫຼັບ", "info");
+                return;
+            }
+            currentCameraIndex = (currentCameraIndex + 1) % camerasList.length;
+            startScanningWithId(camerasList[currentCameraIndex].id);
+            showToast("ກຳລັງສະຫຼັບກ້ອງ...", "refresh-cw");
+        });
+
+        document.getElementById("btnRestartCamera").addEventListener("click", () => {
+            if (activeCameraId) {
+                startScanningWithId(activeCameraId);
+                showToast("ກຳລັງເລີ່ມກ້ອງໃໝ່...", "refresh-cw");
+            }
+        });
+
+        // ตรวจสอบเมื่อกด ตกลง รหัสผ่านแป้นพิมพ์กรอกมือ
+        document.getElementById("btnManualSubmit").addEventListener("click", () => {
+            const manualText = document.getElementById("manualQrInput").value.trim();
+            if (!manualText) {
+                showToast("ກະລຸນາໃສ່ລະຫັດ QR Code ກ່ອນ", "alert-circle");
+                return;
+            }
+            handleScanSuccess(manualText);
+            document.getElementById("manualQrInput").value = "";
+            document.getElementById("clearManualInput").style.display = "none";
+        });
+
+        /* ========================================================
+           INSTANT POPUP ACTIONS - ป๊อปอัปแสดงผลทันทีตรงกลางหน้าจอ
+           ======================================================== */
+        function openModal() {
+            const modal = document.getElementById("popupModal");
+            const app = document.getElementById("appContainer");
+
+            // ดึงป๊อปอัปให้แสดงผลกลางจอทันทีแบบ Display Flex
+            modal.classList.add("modal-active-instant");
+            document.body.style.overflow = "hidden"; // ล็อกการสกรอลล์ด้านหลัง
+            
+            // เอฟเฟกต์เบลอและปรับสีฉากหลังทันที
+            app.style.filter = "brightness(0.65) blur(4px)";
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("popupModal");
+            const app = document.getElementById("appContainer");
+
+            // ซ่อนทันทีโดยไม่มีการหน่วงเวลาอนิเมชัน
+            modal.classList.remove("modal-active-instant");
+            document.body.style.overflow = ""; // ปลดล็อกสกรอลล์
+            app.style.filter = ""; // คืนค่าหน้าจอหลัก
+        }
+
+        document.getElementById("btnCancelModal").addEventListener("click", closeModal);
+        document.getElementById("btnCloseModalHeader").addEventListener("click", closeModal);
+
+        // จัดส่งผลลัพธ์ข้อมูลไปเก็บยัง Apps Script บนคลาวด์
+        document.getElementById("btnSaveData").addEventListener("click", () => {
+            const qrValue = document.getElementById("modalQrCode").value;
+            const dateValue = document.getElementById("modalDate").value;
+            const statusValue = document.querySelector('input[name="status"]:checked').value;
+            const detailsValue = document.getElementById("modalDetails").value.trim();
+
+            if (!dateValue) {
+                showToast("ກະລຸນາເລືອກວັນທີ", "calendar");
+                return;
+            }
+            if (!detailsValue) {
+                showToast("ກະລຸນາປ້ອນລາຍລະອຽດ", "text-quote");
+                return;
+            }
+
+            const saveBtnText = document.getElementById("saveBtnText");
+            const btnSaveData = document.getElementById("btnSaveData");
+            
+            saveBtnText.innerText = "ກຳລັງບັນທຶກ...";
+            btnSaveData.disabled = true;
+            btnSaveData.classList.add("opacity-60", "cursor-not-allowed");
+
+            const payload = {
+                action: "saveData",
+                sheetId: SPREADSHEET_ID,
+                qrCode: qrValue,
+                date: dateValue,
+                status: statusValue,
+                details: detailsValue
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                showToast("ບັນທຶກຂໍ້ມູນສຳເລັດແລ້ວ!", "check-circle");
+                closeModal();
+                fetchRecentRecords();
+            })
+            .catch(error => {
+                console.error("Error saving data:", error);
+                showToast("ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່", "x-circle");
+            })
+            .finally(() => {
+                saveBtnText.innerText = "ບັນທຶກຂໍ້ມູນ";
+                btnSaveData.disabled = false;
+                btnSaveData.classList.remove("opacity-60", "cursor-not-allowed");
+            });
+        });
+
+        // ฟังก์ชันควบคุมป๊อปอัปหน้าต่างย่อย (แสดงผลรวดเร็วทันใจ)
+        function openSubModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeSubModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            document.body.style.overflow = "";
+        }
+
+        // ผูกอีเวนต์ปุ่มเปิดหน้าตากล่องตัวช่วยต่างๆ
+        document.getElementById("btnActionAnimation").addEventListener("click", () => openSubModal("motionModal"));
+        document.getElementById("btnPrintReport").addEventListener("click", () => openSubModal("reportModal"));
+        document.getElementById("btnDatabase").addEventListener("click", () => {
+            openSubModal("dbModal");
+            fetchRecentRecords();
+        });
+        document.getElementById("btnCreateQr").addEventListener("click", () => {
+            openSubModal("createQrModal");
+            document.getElementById("qrTextGen").value = "";
+            document.getElementById("qrResultContainer").classList.add("hidden");
+        });
+        document.getElementById("btnFetchRecent").addEventListener("click", () => fetchRecentRecords());
+
+        // จำลองระบบดาวน์โหลดไฟล์เอกสาร
+        function simulateDownload(type) {
+            showToast(`ກຳລັງສ້າງໄຟລ໌ ${type}...`, "loader");
+            setTimeout(() => {
+                showToast(`ດາວໂຫຼດລາຍງານ ${type} ສຳເລັດແລ້ວ!`, "check");
+            }, 1000);
+        }
+
+        // เครื่องประมวลผล QR Image ตัวช่วยป้อนการเทส
+        function generateQRImage() {
+            const txt = document.getElementById("qrTextGen").value.trim();
+            if (!txt) {
+                showToast("ກະລຸນາປ້ອນຂໍ້ມູນກ່ອນ", "alert-circle");
+                return;
+            }
+            const wrapper = document.getElementById("qrImageWrapper");
+            const label = document.getElementById("qrResultLabel");
+            const container = document.getElementById("qrResultContainer");
+
+            container.classList.remove("hidden");
+            wrapper.innerHTML = `<div class="p-4 text-xs text-slate-400 animate-pulse">ກຳລັງສ້າງ...</div>`;
+            label.innerText = txt;
+
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(txt)}`;
+            
+            const img = new Image();
+            img.onload = function() {
+                wrapper.innerHTML = "";
+                wrapper.appendChild(img);
+                img.className = "w-40 h-40 object-contain rounded-xl";
+            };
+            img.onerror = function() {
+                wrapper.innerHTML = `<span class="text-xs text-rose-500">ເກີດຂໍ້ຜິດພາດ</span>`;
+            };
+            img.src = qrUrl;
+        }
+
+        // ดึงรายงานผลจากชีตจริง
+        function fetchRecentRecords() {
+            const container = document.getElementById("dbRecordsContainer");
+            container.innerHTML = `
+                <div class="text-center py-8 text-slate-400 text-xs">
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-500"></i>
+                    ກຳລັງເຊື່ອມຕໍ່ກັບ Google Sheets...
+                </div>
+            `;
+            lucide.createIcons();
+
+            const queryUrl = `${WEB_APP_URL}?action=getData&sheetId=${SPREADSHEET_ID}`;
+            
+            fetch(queryUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success && data.records && data.records.length > 0) {
+                    renderRecords(data.records);
+                } else {
+                    renderEmptyRecords();
+                }
+            })
+            .catch(() => {
+                setTimeout(() => {
+                    const mockRecords = [
+                        { qrCode: "QR-88902", date: "2026-06-16", status: "ສຳເລັດ", details: "ກວດເຊັກລະບົບໄຟຟ້າຮຽບຮ້ອຍແລ້ວ ໝໍ້ແປງໄຟຟ້າເຮັດວຽກປົກກະຕິ" },
+                        { qrCode: "QR-10041", date: "2026-06-15", status: "ບັນຫາ", details: "ເຄື່ອງພິມເອກະສານມີບັນຫາກະດາດຕິດ ຄາດວ່າລູກຢາງເສື່ອມສະພາບ" },
+                        { qrCode: "QR-44589", date: "2026-06-14", status: "ເພ້", details: "ຕັ່ງນັ່ງຂອງລູກຄ້າຊຳລຸດເສຍຫາຍ ຂາຫັກ 1 ເບື້ອງ ຕ້ອງນຳສົ່ງສ້ອມແປງດ່ວນ" }
+                    ];
+                    renderRecords(mockRecords);
+                }, 500);
+            });
+        }
+
+        function renderRecords(records) {
+            const container = document.getElementById("dbRecordsContainer");
+            container.innerHTML = "";
+
+            records.forEach(rec => {
+                let colorClass = "bg-slate-100 text-slate-800 border-slate-200";
+                let iconName = "alert-circle";
+                
+                if (rec.status === "ສຳເລັດ") {
+                    colorClass = "bg-emerald-50 text-emerald-800 border-emerald-100/60";
+                    iconName = "check-circle";
+                } else if (rec.status === "ບັນຫາ") {
+                    colorClass = "bg-rose-50 text-rose-800 border-rose-100/60";
+                    iconName = "alert-triangle";
+                } else if (rec.status === "ເພ້") {
+                    colorClass = "bg-amber-50 text-amber-800 border-amber-100/60";
+                    iconName = "flame";
                 }
 
-                const itemHtml = `
-                    <div class="relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 transition-transform hover:scale-[1.01]">
-                        <!-- Left indicator color bar -->
-                        <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${
-                            problemType.includes('ວິກິດ') || problemType.includes('ສູງ') || problemType.includes('ເສຍ') ? 'bg-rose-500' :
-                            problemType.includes('ປົກກະຕິ') || problemType.includes('ສຳເລັດ') ? 'bg-emerald-500' :
-                            problemType.includes('ສ້ອມ') || problemType.includes('ດຳເນີນການ') ? 'bg-amber-500' : 'bg-indigo-500'
-                        }"></div>
-                        
-                        <div class="flex items-start justify-between gap-2 pl-2">
-                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
-                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                                ${dateFormatted}
+                const item = document.createElement("div");
+                item.className = "p-4 bg-slate-50 border border-slate-100 rounded-3xl flex flex-col gap-2 shadow-sm transition-all hover:bg-slate-100/50";
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono font-bold text-xs text-indigo-700 bg-indigo-50 border border-indigo-100/60 px-2.5 py-0.5 rounded-lg">${rec.qrCode}</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[9px] text-slate-400 font-mono font-semibold">${rec.date}</span>
+                            <span class="px-2.5 py-0.5 text-[9px] font-bold rounded-full border ${colorClass} flex items-center gap-0.5">
+                                <i data-lucide="${iconName}" class="w-3.5 h-3.5"></i>
+                                ${rec.status}
                             </span>
-                            ${problemType ? `
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeStyle}">
-                                    ${problemType}
-                                </span>
-                            ` : ''}
-                        </div>
-
-                        <div class="pl-2 space-y-1">
-                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">ເນື້ອຫາລາຍລະອຽດຂໍ້ມູນ</span>
-                            <p class="text-sm text-slate-700 font-medium whitespace-pre-line leading-relaxed">${item.content || '-'}</p>
                         </div>
                     </div>
+                    <p class="text-xs text-slate-600 leading-relaxed font-medium">${rec.details}</p>
                 `;
-                timelineContainer.insertAdjacentHTML('beforeend', itemHtml);
+                container.appendChild(item);
             });
-
             lucide.createIcons();
-            
-            // Scroll dynamically to result section
-            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // Trigger search by manual keying
-        searchBtn.addEventListener('click', () => {
-            const val = manualInput.value;
-            fetchDataFromSheet(val);
-        });
+        function renderEmptyRecords() {
+            const container = document.getElementById("dbRecordsContainer");
+            container.innerHTML = `
+                <div class="text-center py-10 text-slate-400">
+                    <i data-lucide="folder-open" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                    <p class="text-xs font-bold">ບໍ່ພົບລາຍການຂໍ້ມູນໃນຖານຂໍ້ມູນ</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
 
-        manualInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                fetchDataFromSheet(manualInput.value);
-            }
-        });
+        // ระบบ Toast แจ้งเตือนสไลด์ด่วนทันใจบนหัวจอ
+        let toastTimeout = null;
+        function showToast(message, iconName = "info") {
+            const toast = document.getElementById("toast");
+            const toastMsg = document.getElementById("toastMsg");
+            const toastIcon = document.getElementById("toastIcon");
 
-        // Reset application state (keeps camera running)
-        resetBtn.addEventListener('click', () => {
-            manualInput.value = '';
-            resultSection.classList.add('hidden');
-            timelineContainer.innerHTML = '';
-            statusBox.style.display = 'none';
-            resetBtn.classList.add('hidden');
-            lastScannedText = ""; // reset scanned cooldown
-            if (isFlashOn) {
-                toggleTorch(); // Turn off flash on reset if it was on
-            }
-        });
+            toastMsg.innerText = message;
+            toastIcon.setAttribute("data-lucide", iconName);
+            lucide.createIcons();
 
-        // Auto-run camera once DOM contents are fully loaded
-        window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(startCameraAuto, 600);
-        });
+            clearTimeout(toastTimeout);
 
+            toast.classList.remove("translate-y-[-10px]", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+
+            toastTimeout = setTimeout(() => {
+                hideToast();
+            }, 2500);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById("toast");
+            toast.classList.remove("translate-y-0", "opacity-100");
+            toast.classList.add("translate-y-[-10px]", "opacity-0");
+        }
     </script>
 </body>
 </html>

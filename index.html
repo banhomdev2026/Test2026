@@ -810,11 +810,7 @@ border border-slate-200 backdrop-blur-xl">
             openSubModal("dbModal");
             fetchRecentRecords();
         });
-        document.getElementById("btnCreateQr").addEventListener("click", () => {
-            openSubModal("createQrModal");
-            document.getElementById("qrTextGen").value = "";
-            document.getElementById("qrResultContainer").classList.add("hidden");
-        });
+        
         document.getElementById("btnFetchRecent").addEventListener("click", () => fetchRecentRecords());
 
         // จำลองระบบดาวน์โหลดไฟล์เอกสาร

@@ -526,11 +526,11 @@ border border-slate-200 backdrop-blur-xl">
                 lblSuccess.querySelector('div').className = "flex flex-col items-center gap-1.5 text-slate-400";
 
                 if (radioProblem.checked) {
-                    lblProblem.className = "relative flex items-center justify-center p-3.5 rounded-2xl border-rose-200 bg-rose-50/70 cursor-pointer text-center hover:bg-rose-50 transition duration-150 shadow-md shadow-rose-100/50";
-                    lblProblem.querySelector('div').className = "flex flex-col items-center gap-1.5 text-rose-700 font-bold";
+                  lblProblem.className = "relative flex items-center justify-center p-3 rounded-2xl border-amber-200 bg-amber-50 cursor-pointer text-center hover:bg-amber-100 transition duration-150";
+lblProblem.querySelector('div').className = "flex flex-col items-center gap-1 text-amber-700";
                 } else if (radioBroken.checked) {
-                    lblBroken.className = "relative flex items-center justify-center p-3.5 rounded-2xl border-slate-300 bg-slate-100 cursor-pointer text-center hover:bg-slate-50 transition duration-150 shadow-md shadow-slate-200/50";
-                    lblBroken.querySelector('div').className = "flex flex-col items-center gap-1.5 text-slate-800 font-bold";
+                  lblBroken.className = "relative flex items-center justify-center p-3 rounded-2xl border-red-200 bg-red-50 cursor-pointer text-center hover:bg-red-100 transition duration-150";
+lblBroken.querySelector('div').className = "flex flex-col items-center gap-1 text-red-700";
                 } else if (radioSuccess.checked) {
                     lblSuccess.className = "relative flex items-center justify-center p-3.5 rounded-2xl border-emerald-200 bg-emerald-50/70 cursor-pointer text-center hover:bg-emerald-50 transition duration-150 shadow-md shadow-emerald-100/50";
                     lblSuccess.querySelector('div').className = "flex flex-col items-center gap-1.5 text-emerald-700 font-bold";
@@ -719,6 +719,8 @@ border border-slate-200 backdrop-blur-xl">
             
             // เอฟเฟกต์เบลอและปรับสีฉากหลังทันที
             app.style.filter = "brightness(0.65) blur(4px)";
+            document.getElementById("modalDetails").focus();
+
         }
 
         function closeModal() {

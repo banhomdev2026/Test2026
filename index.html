@@ -473,7 +473,9 @@ border border-slate-200 backdrop-blur-xl">
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxT4F5NhaQhz-_nBEeTOynlj-L5coiVfUvQ4dqxyc5lk8N24471paZGQPBz-EFU9klMqA/exec";
         const SPREADSHEET_ID = "1Odn3pvx5_sBDpnhL6CpNHQKeEEKrW6NqYShxEg7DTQQ";
-
+fetch(WEB_API_URL + "?page=index")
+  .then(res => res.text())
+  .then(data => console.log(data
         let html5QrCode = null;
         let isFlashOn = false;
         let activeCameraId = null;

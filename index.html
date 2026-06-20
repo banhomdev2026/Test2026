@@ -156,21 +156,9 @@
         <!-- PAGE 2: MOVEMENT PAGE -->
         <section id="page-movement" class="hidden space-y-4">
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <button onclick="switchTab('page-index')" class="text-slate-500 hover:text-slate-700 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                        <h2 class="text-base font-bold text-slate-800">ໜ້າຕິດຕາມການເຄື່ອນໄຫວ UPS</h2>
-                    </div>
-                    <!-- Flashlight Button (Icon Only) -->
-                    <div class="flex gap-2">
-                    <button onclick="refreshCameraPage('page-movement')" class="w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition" title="Refresh ກ້ອງ">
-                        <i class="fa-solid fa-rotate-right text-sm"></i>
-                    </button>
-                    <button id="btn-toggle-flash-movement" onclick="togglePageFlashlight('btn-toggle-flash-movement')" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition" title="ເປີດ/ປິດໄຟສາຍ">
-                        <i class="fa-solid fa-lightbulb text-sm"></i>
-                    </button></div>
+<div class="flex items-center gap-2 mb-3">
+                    <h2 class="text-base font-bold text-slate-800">ໜ້າຕິດຕາມການເຄື່ອນໄຫວ UPS</h2>
                 </div>
-
                 <!-- Camera Scanner Box (Square Aspect Ratio - Scans instantly) -->
 <div class="space-y-3">
                     <label class="block text-sm font-semibold text-slate-600 uppercase tracking-wider">ສະແກນ ຫຼື ປ້ອນລະຫັດ QR ເພື່ອດຶງຂໍ້ມູນ (ຕົວພິມໃຫຍ່ເທົ່ານັ້ນ)</label>
@@ -210,7 +198,6 @@
         <section id="page-print" class="hidden space-y-4">
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
                 <div class="flex items-center gap-2 mb-3">
-                    <button onclick="switchTab('page-index')" class="text-slate-500 hover:text-slate-700 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
                     <h2 class="text-base font-bold text-slate-800">ສົ່ງພິມລາຍລະອຽດ (ຖັນ B ແຖວ 5)</h2>
                 </div>
 
@@ -240,7 +227,6 @@
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
-                        <button onclick="switchTab('page-index')" class="text-slate-500 hover:text-slate-700 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
                         <h2 class="text-base font-bold text-slate-800"><b>ຂໍ້ມູນຫຼັກອຸປະກອນ (Data)</b></h2>
                     </div>
                     <!-- ปุ่มเพิ่มข้อมูล -->
@@ -253,15 +239,7 @@
                 <div class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">ເຄື່ອງມືຄົ້ນຫາຂໍ້ມູນ</p>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <!-- ค้นหาทั่วไป -->
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                                <i class="fa-solid fa-search text-sm"></i>
-                            </span>
-                            <input type="text" id="search-all-input" oninput="this.value = this.value.toUpperCase()" onkeyup="filterDatabase()" placeholder="ຄົ້ນຫາຈາກຂໍ້ຄວາມ..." class="w-full uppercase pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
-                        </div>
-
+                    <div class="grid grid-cols-1 gap-2">
                         <!-- ค้นหาผ่านแผนกวิเคราะห์ตัวอักษร 2 ตัวหน้า -->
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
@@ -310,7 +288,6 @@
         <section id="page-generator" class="hidden space-y-4">
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
                 <div class="flex items-center gap-2 mb-3">
-                    <button onclick="switchTab('page-index')" class="text-slate-500 hover:text-slate-700 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
                     <h2 class="text-base font-bold text-slate-800"><b>ເຄື່ອງມືສ້າງ QR Code ຈຳນວນຫຼາຍ</b></h2>
                 </div>
 
@@ -1326,21 +1303,7 @@ const formattedDate = `${dd}/${mm}/${yyyy}`;
             document.getElementById('item-details-modal').classList.add('hidden');
         }
 
-        // ค้นหาทั่วไป
-        function filterDatabase() {
-            const query = document.getElementById('search-all-input').value.toLowerCase();
-            const filtered = loadedMasterData.filter(item => {
-                return (
-                    (item.qrcode && item.qrcode.toLowerCase().includes(query)) ||
-                    (item.asset && item.asset.toLowerCase().includes(query)) ||
-                    (item.dept && item.dept.toLowerCase().includes(query)) ||
-                    (item.model && item.model.toLowerCase().includes(query)) ||
-                    (item.serial && item.serial.toLowerCase().includes(query)) ||
-                    (item.location && item.location.toLowerCase().includes(query))
-                );
-            });
-            renderDatabaseList(filtered);
-        }
+        
 
         // ค้นหาผ่านแผนกวิเคราะห์จากอักษรเริ่มต้น 2 ตัวหน้า (ข้อ 4.3)
         function filterDatabaseByDept() {
@@ -1358,11 +1321,18 @@ const formattedDate = `${dd}/${mm}/${yyyy}`;
 
         // ค้นหาผ่านรหัส QR code
         function filterDatabaseByQR() {
-            const query = document.getElementById('search-qr-input').value.toLowerCase();
+            const query = document.getElementById('search-qr-input').value.trim().toLowerCase();
+            if (!query) {
+                renderDatabaseList(loadedMasterData);
+                return;
+            }
             const filtered = loadedMasterData.filter(item => {
-                return (item.qrcode && item.qrcode.toLowerCase().includes(query));
+                return (item.qrcode && item.qrcode.trim().toLowerCase().includes(query));
             });
             renderDatabaseList(filtered);
+            if (filtered.length === 0) {
+                showToast("ບໍ່ພົບຂໍ້ມູນຂອງລະຫັດ QR ນີ້", "error");
+            }
         }
 
         // ==========================================

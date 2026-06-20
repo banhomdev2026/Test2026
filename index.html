@@ -810,41 +810,36 @@
 
         // ฟังก์ชันเเปิด/ปิดไฟฉายอย่างสมบูรณ์แบบ
         async function togglePageFlashlight(btnId) {
-            if (!activeScanner || !activeScanner.isScanning) {
-                showToast("ກະລຸນາເປີດກ້ອງກ່ອນເປີດໄຟສາຍ", "error");
-                return;
-            }
+    if (!activeScanner) {
+        showToast("ກ້ອງຍັງບໍ່ໄດ້ເປີດ", "error");
+        return;
+    }
 
-            try {
-                isFlashOn = !isFlashOn;
-                const cameraCapabilities = activeScanner.getRunningTrackCapabilities();
-                if (cameraCapabilities.torch) {
-                    await activeScanner.applyVideoConstrains({
-                        advanced: [{ torch: isFlashOn }]
-                    });
-                    
-                    // ปรับแต่งสไตล์ปุ่มไฟฉายทุกตัว
-                    const buttons = ['btn-toggle-flash-index', 'btn-toggle-flash-movement', 'btn-toggle-flash-print'];
-                    buttons.forEach(id => {
-                        const btn = document.getElementById(id);
-                        if (!btn) return;
-                        if (isFlashOn) {
-                            btn.classList.add('bg-amber-500', 'text-white');
-                            btn.classList.remove('bg-slate-100', 'text-slate-600');
-                        } else {
-                            btn.classList.remove('bg-amber-500', 'text-white');
-                            btn.classList.add('bg-slate-100', 'text-slate-600');
-                        }
-                    });
-                    
-                    showToast(isFlashOn ? "ເປີດໄຟສາຍແລ້ວ" : "ປິດໄຟສາຍແລ້ວ");
-                } else {
-                    showToast("ອຸປະກອນຂອງທ່ານບໍ່ຮອງຮັບໄຟສາຍ", "error");
-                }
-            } catch (err) {
-                console.error("ຄວບຄຸມໄຟສາຍລົ້ມເຫຼວ:", err);
-                showToast("ບໍ່ສາມາດເປີດ/ປິດໄຟສາຍໃນເວລານີ້ໄດ້", "error");
-            }
+    try {
+        const track = activeScanner.getRunningTrackSettings
+            ? activeScanner.getRunningTrackSettings()
+            : null;
+
+        isFlashOn = !isFlashOn;
+
+        await activeScanner.applyVideoConstraints({
+            advanced: [{ torch: isFlashOn }]
+        });
+
+        const btn = document.getElementById(btnId);
+
+        if (isFlashOn) {
+            btn.classList.add('bg-amber-500','text-white');
+        } else {
+            btn.classList.remove('bg-amber-500','text-white');
+        }
+
+        showToast(isFlashOn ? "ເປີດໄຟສາຍແລ້ວ" : "ປິດໄຟສາຍແລ້ວ");
+
+    } catch (e) {
+        console.error(e);
+        showToast("ອຸປະກອນບໍ່ຮອງຮັບໄຟສາຍ", "error");
+    }
         }
 
         function resetFlashlightButtons() {

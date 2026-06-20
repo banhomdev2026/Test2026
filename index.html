@@ -209,36 +209,9 @@
         <!-- PAGE 3: PRINT PAGE -->
         <section id="page-print" class="hidden space-y-4">
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <button onclick="switchTab('page-index')" class="text-slate-500 hover:text-slate-700 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                        <h2 class="text-base font-bold text-slate-800">ສົ່ງພິມລາຍລະອຽດ (ຖັນ B ແຖວ 5)</h2>
-                    </div>
-                    <!-- Flashlight Button (Icon Only) -->
-                    <div class="flex gap-2">
-                    <button onclick="refreshCameraPage('page-print')" class="w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition" title="Refresh ກ້ອງ">
-                        <i class="fa-solid fa-rotate-right text-sm"></i>
-                    </button>
-                    <button id="btn-toggle-flash-print" onclick="togglePageFlashlight('btn-toggle-flash-print')" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition" title="ເປີດ/ປິດໄຟສາຍ">
-                        <i class="fa-solid fa-lightbulb text-sm"></i>
-                    </button></div>
-                </div>
-
-                <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 mb-4 text-sm text-amber-800 flex gap-2">
-                    <i class="fa-solid fa-circle-info text-base mt-0.5"></i>
-                    <div>
-                        <p class="font-bold">ເງື່ອນໄຂການເຮັດວຽກ:</p>
-                        <p class="mt-0.5">ເມື່ອທຳການສະແກນ ຫຼື ປ້ອນລະຫັດ QR Code ລະບົບຈະບັນທຶກລົງ Sheet 'report' ຖັນ B ແຖວ 5 ທັນທີ ແລະ ພາກັບຄືນສູ່ໜ້າຫຼັກອັດຕະໂນມັດ.</p>
-                    </div>
-                </div>
-
-                <!-- Camera Scanner Box (Square Aspect Ratio - Submits instantly) -->
-                <div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-square max-w-[260px] mx-auto border border-slate-200 shadow-inner mb-4">
-                    <div id="qr-reader-print" class="w-full h-full"></div>
-                    <div id="qr-reader-print-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-slate-400 p-4 text-center pointer-events-none">
-                        <i class="fa-solid fa-qrcode text-4xl mb-2 animate-pulse text-amber-400"></i>
-                        <span class="text-xs font-medium">ກຳລັງເລີ່ມຕົ້ນກ້ອງສົ່ງພິມ...</span>
-                    </div>
+                <div class="flex items-center gap-2 mb-3">
+                    <button onclick="switchTab('page-index')" class="text-slate-500 hover:text-slate-700 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                    <h2 class="text-base font-bold text-slate-800">ສົ່ງພິມລາຍລະອຽດ (ຖັນ B ແຖວ 5)</h2>
                 </div>
 
                 <div class="space-y-4">
@@ -248,7 +221,10 @@
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                                 <i class="fa-solid fa-print text-sm"></i>
                             </span>
-                            <input type="text" id="print-qr-input" oninput="this.value = this.value.toUpperCase()" placeholder="ປ້ອນລະຫັດເພື່ອສົ່ງພິມທັນທີ..." class="w-full uppercase pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <input type="text" id="print-qr-input" oninput="this.value = this.value.toUpperCase()" placeholder="ປ້ອນລະຫັດເພື່ອສົ່ງພິມທັນທີ..." class="w-full uppercase pl-9 pr-9 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <button type="button" onclick="startSpecificScanner('print-qr-input')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-amber-500 hover:text-amber-700 transition" title="ສະແກນດ້ວຍກ້ອງ">
+                                <i class="fa-solid fa-camera text-base"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -666,10 +642,15 @@
         }
 
         // สลับไปมาระหว่างหน้าแท็บแบบ Single Page
-        async function switchTab(tabId) {
-            // หยุดการทำงานของกล้องหน้าเดิมก่อนย้ายแท็บ
-            await stopActiveScanner();
+        function switchTab(tabId) {
+            // ปิดกล้องแบบไม่บล็อก (background) เพื่อให้สลับแท็บได้ไวทันที
+            stopActiveScanner();
             resetFlashlightButtons();
+
+            // ล้างข้อมูลหน้า movement ทุกครั้งที่ออกจากหน้านี้ไปหน้าอื่น
+            if (currentTabId === 'page-movement' && tabId !== 'page-movement') {
+                clearMovementPage();
+            }
 
             // ซ่อนหน้าจอทั้งหมด
             document.querySelectorAll('main > section').forEach(section => {
@@ -688,13 +669,13 @@
 
             currentTabId = tabId;
 
-            // เริ่มการทำงานของสแกนเนอร์ในหน้าแท็บที่ย้ายมาใหม่ทันที
+            // เริ่มการทำงานของสแกนเนอร์ในหน้าแท็บที่ย้ายมาใหม่ทันที (ถือเป็นการ refresh กล้องในตัว)
             if (tabId === 'page-index') {
                 startPageScanner('qr-reader-index', onIndexScanSuccess);
             } else if (tabId === 'page-movement') {
                 // ไม่เปิดกล้องอัตโนมัติแล้ว ผู้ใช้กดไอคอนกล้องเองเพื่อสแกน
             } else if (tabId === 'page-print') {
-                startPageScanner('qr-reader-print', onPrintScanSuccess);
+                // ไม่เปิดกล้องอัตโนมัติแล้ว ผู้ใช้กดไอคอนกล้องเองเพื่อสแกน
             } else if (tabId === 'page-database') {
                 // ดึงข้อมูลแบบเงียบๆ (Silent Update) ทุกครั้งที่เข้าหน้าข้อมูลหลัก
                 refreshDatabase(true);
@@ -710,7 +691,7 @@
 } else if (pageId === 'page-movement') {
                 // ไม่มีกล้องค้างในหน้านี้แล้ว ไม่ต้อง refresh
             } else if (pageId === 'page-print') {
-                startPageScanner('qr-reader-print', onPrintScanSuccess);
+                // ไม่มีกล้องค้างในหน้านี้แล้ว ไม่ต้อง refresh
             }
             showToast('Refresh ກ້ອງສຳເລັດ');
         }
@@ -968,7 +949,13 @@ async function togglePageFlashlight(btnId) {
             showToast("ສະແກນ QR Code ສຳເລັດ!");
             loadMovementData();
         }
-
+function clearMovementPage() {
+            document.getElementById('movement-qr-input').value = '';
+            document.getElementById('movement-results-box').classList.add('hidden');
+            document.getElementById('movement-timeline').innerHTML = '';
+            document.getElementById('movement-qr-title').innerText = '';
+            document.getElementById('movement-count-badge').innerText = '0 ລາຍການ';
+        }
         async function loadMovementData() {
             const qrcode = document.getElementById('movement-qr-input').value.trim().toUpperCase();
             if (!qrcode) {
@@ -1581,6 +1568,8 @@ const formattedDate = `${dd}/${mm}/${yyyy}`;
                     filterDatabaseByQR();
                 } else if (activeScannerFieldId === 'movement-qr-input') {
                     loadMovementData();
+                } else if (activeScannerFieldId === 'print-qr-input') {
+                    submitPrintData();
                 }
                 
                 showToast(`ສະແກນລະຫັດສຳເລັດ: ${uppercaseCode}`);

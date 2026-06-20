@@ -172,29 +172,23 @@
                 </div>
 
                 <!-- Camera Scanner Box (Square Aspect Ratio - Scans instantly) -->
-                <div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-square max-w-[260px] mx-auto border border-slate-200 shadow-inner mb-4">
-                    <div id="qr-reader-movement" class="w-full h-full"></div>
-                    <div id="qr-reader-movement-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-slate-400 p-4 text-center pointer-events-none">
-                        <i class="fa-solid fa-qrcode text-4xl mb-2 animate-pulse text-blue-400"></i>
-                        <span class="text-xs font-medium">ກຳລັງເລີ່ມຕົ້ນກ້ອງຕິດຕາມ...</span>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
+<div class="space-y-3">
                     <label class="block text-sm font-semibold text-slate-600 uppercase tracking-wider">ສະແກນ ຫຼື ປ້ອນລະຫັດ QR ເພື່ອດຶງຂໍ້ມູນ (ຕົວພິມໃຫຍ່ເທົ່ານັ້ນ)</label>
                     <div class="flex gap-2">
                         <div class="relative flex-1">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                                 <i class="fa-solid fa-search text-sm"></i>
                             </span>
-                            <input type="text" id="movement-qr-input" oninput="this.value = this.value.toUpperCase()" placeholder="ສະແກນ ຫຼື ປ້ອນລະຫັດ..." class="w-full uppercase pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <input type="text" id="movement-qr-input" oninput="this.value = this.value.toUpperCase()" placeholder="ສະແກນ ຫຼື ປ້ອນລະຫັດ..." class="w-full uppercase pl-9 pr-9 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <button type="button" onclick="startSpecificScanner('movement-qr-input')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-indigo-500 hover:text-indigo-700 transition" title="ສະແກນດ້ວຍກ້ອງ">
+                                <i class="fa-solid fa-camera text-base"></i>
+                            </button>
                         </div>
                         <button onclick="loadMovementData()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-semibold text-sm transition flex items-center gap-1.5 shadow-sm">
                             <i class="fa-solid fa-arrows-rotate"></i> ດຶງຂໍ້ມູນ
                         </button>
                     </div>
                 </div>
-            </div>
 
             <!-- Movement Results Container -->
             <div id="movement-results-box" class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs hidden transition-all duration-300">
@@ -698,7 +692,7 @@
             if (tabId === 'page-index') {
                 startPageScanner('qr-reader-index', onIndexScanSuccess);
             } else if (tabId === 'page-movement') {
-                startPageScanner('qr-reader-movement', onMovementScanSuccess);
+                // ไม่เปิดกล้องอัตโนมัติแล้ว ผู้ใช้กดไอคอนกล้องเองเพื่อสแกน
             } else if (tabId === 'page-print') {
                 startPageScanner('qr-reader-print', onPrintScanSuccess);
             } else if (tabId === 'page-database') {
@@ -713,8 +707,8 @@
             resetFlashlightButtons();
             if (pageId === 'page-index') {
                 startPageScanner('qr-reader-index', onIndexScanSuccess);
-            } else if (pageId === 'page-movement') {
-                startPageScanner('qr-reader-movement', onMovementScanSuccess);
+} else if (pageId === 'page-movement') {
+                // ไม่มีกล้องค้างในหน้านี้แล้ว ไม่ต้อง refresh
             } else if (pageId === 'page-print') {
                 startPageScanner('qr-reader-print', onPrintScanSuccess);
             }
@@ -809,7 +803,7 @@
         }
 
         // ฟังก์ชันเเปิด/ปิดไฟฉายอย่างสมบูรณ์แบบ
-        async function togglePageFlashlight(btnId) {
+async function togglePageFlashlight(btnId) {
     if (!activeScanner) {
         showToast("ກ້ອງຍັງບໍ່ໄດ້ເປີດ", "error");
         return;
@@ -840,8 +834,7 @@
         console.error(e);
         showToast("ອຸປະກອນບໍ່ຮອງຮັບໄຟສາຍ", "error");
     }
-        }
-
+}
         function resetFlashlightButtons() {
             isFlashOn = false;
             const buttons = ['btn-toggle-flash-index', 'btn-toggle-flash-movement', 'btn-toggle-flash-print'];
@@ -1043,13 +1036,11 @@
                         statusIcon = "fa-trash";
                     }
 
-                    const dateObj = new Date(item.date);
-                    const formattedDate = dateObj.toLocaleDateString('lo-LA', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-
+                 const dateObj = new Date(item.date);
+const dd = String(dateObj.getDate()).padStart(2, '0');
+const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+const yyyy = dateObj.getFullYear();
+const formattedDate = `${dd}/${mm}/${yyyy}`;
                     timeline.innerHTML += `
                         <div class="relative pl-1">
                             <span class="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-white border-4 border-indigo-400 flex items-center justify-center"></span>
@@ -1588,6 +1579,8 @@
                 
                 if (activeScannerFieldId === 'search-qr-input') {
                     filterDatabaseByQR();
+                } else if (activeScannerFieldId === 'movement-qr-input') {
+                    loadMovementData();
                 }
                 
                 showToast(`ສະແກນລະຫັດສຳເລັດ: ${uppercaseCode}`);
